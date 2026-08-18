@@ -1,1488 +1,953 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <title>LLM対話ログ（保存方法の検討）</title>
-    <style>
-        body { font-family: sans-serif; line-height: 1.6; margin: 30px; max-width: 800px; }
-        details { background: #f9f9f9; padding: 15px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 15px; }
-        summary { font-weight: bold; cursor: pointer; outline: none; font-size: 1.1em; }
-        summary:hover { background: #f0f0f0; }
-        .prompt { background: #e3f2fd; padding: 15px; border-radius: 5px; border-left: 4px solid #2196f3; margin-top: 10px; margin-bottom: 15px; }
-        .response { background: #ffffff; padding: 15px; border: 1px solid #eee; border-radius: 5px; white-space: pre-wrap; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>テロップ教材ビルダー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1C1B1A;
+    --panel:#242220;
+    --panel-2:#2D2A27;
+    --panel-3:#38342f;
+    --border:#3C3833;
+    --text:#EDEAE4;
+    --text-dim:#9C968C;
+    --text-faint:#6E685F;
+    --amber:#D4A54A;
+    --amber-dim:rgba(212,165,74,0.18);
+    --amber-line:rgba(212,165,74,0.45);
+    --teal:#5FA8A0;
+    --teal-dim:rgba(95,168,160,0.18);
+    --danger:#C1594A;
+    --danger-dim:rgba(193,89,74,0.18);
+    --radius:10px;
+    --radius-sm:6px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Zen Kaku Gothic New', sans-serif;
+    min-height:100vh;
+  }
+  h1,h2,h3,.serif{font-family:'Shippori Mincho', serif;}
+  button{font-family:inherit;}
+  ::selection{background:var(--amber-dim);}
+
+  /* ---------- App shell ---------- */
+  .app-header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 24px; border-bottom:1px solid var(--border);
+    position:sticky; top:0; background:var(--bg); z-index:20;
+    gap:12px; flex-wrap:wrap;
+  }
+  .brand{display:flex; align-items:center; gap:10px;}
+  .brand .mark{
+    width:28px; height:28px; border-radius:6px;
+    background:linear-gradient(135deg, var(--amber), var(--teal));
+    flex-shrink:0;
+  }
+  .brand h1{font-size:18px; margin:0; font-weight:700; letter-spacing:.02em;}
+  .brand .sub{font-size:11px; color:var(--text-dim); margin-top:1px;}
+  .header-right{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+
+  .btn{
+    border:1px solid var(--border); background:var(--panel-2); color:var(--text);
+    padding:9px 16px; border-radius:999px; font-size:13.5px; cursor:pointer;
+    transition:border-color .15s, background .15s, transform .1s;
+    display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+  }
+  .btn:hover{border-color:var(--text-faint); background:var(--panel-3);}
+  .btn:active{transform:scale(.97);}
+  .btn-primary{background:var(--amber); color:#211a08; border-color:var(--amber); font-weight:700;}
+  .btn-primary:hover{background:#e0b25c; border-color:#e0b25c;}
+  .btn-teal{background:var(--teal); color:#0e2624; border-color:var(--teal); font-weight:700;}
+  .btn-teal:hover{background:#71bcb3;}
+  .btn-ghost{background:transparent; border-color:transparent;}
+  .btn-ghost:hover{background:var(--panel-2); border-color:var(--border);}
+  .btn-danger{color:var(--danger); border-color:var(--danger-dim);}
+  .btn-danger:hover{background:var(--danger-dim);}
+  .btn-sm{padding:6px 12px; font-size:12.5px;}
+  .btn[disabled]{opacity:.4; cursor:not-allowed;}
+
+  main{max-width:1180px; margin:0 auto; padding:28px 24px 80px;}
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  /* ---------- List screen ---------- */
+  .list-hero{margin-bottom:28px;}
+  .list-hero h2{font-size:26px; margin:0 0 6px;}
+  .list-hero p{color:var(--text-dim); margin:0; font-size:14px; line-height:1.7;}
+  .project-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr));
+    gap:14px; margin-top:20px;
+  }
+  .project-card{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+    padding:18px; display:flex; flex-direction:column; gap:10px; cursor:pointer;
+    transition:border-color .15s, transform .1s;
+  }
+  .project-card:hover{border-color:var(--amber-line); transform:translateY(-2px);}
+  .project-card .title{font-weight:700; font-size:15.5px; line-height:1.4;}
+  .project-card .meta{font-size:12px; color:var(--text-dim); display:flex; gap:10px; flex-wrap:wrap;}
+  .project-card .meta span{display:flex; align-items:center; gap:4px;}
+  .project-card .row-actions{display:flex; gap:8px; margin-top:4px;}
+  .new-card{
+    border:1.5px dashed var(--border); border-radius:var(--radius); padding:18px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:8px; cursor:pointer; color:var(--text-dim); min-height:120px;
+    transition:border-color .15s, color .15s;
+  }
+  .new-card:hover{border-color:var(--amber-line); color:var(--amber);}
+  .new-card .plus{font-size:26px; line-height:1;}
+  .empty-note{color:var(--text-faint); font-size:13px; padding:30px 0; text-align:center;}
+
+  /* ---------- Editor screen ---------- */
+  .editor-title-row{display:flex; align-items:center; gap:10px; margin-bottom:18px; flex-wrap:wrap;}
+  .title-input{
+    background:transparent; border:none; border-bottom:1px solid transparent; color:var(--text);
+    font-family:'Shippori Mincho', serif; font-size:22px; font-weight:700; padding:4px 2px;
+    min-width:200px; flex:1;
+  }
+  .title-input:focus{outline:none; border-bottom-color:var(--amber-line);}
+  .dirty-dot{width:7px; height:7px; border-radius:50%; background:var(--amber); display:none;}
+  .dirty-dot.show{display:inline-block;}
+
+  .editor-grid{display:grid; grid-template-columns:1fr 340px; gap:22px;}
+  @media (max-width:880px){ .editor-grid{grid-template-columns:1fr;} }
+
+  .video-panel{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:16px;}
+  .video-wrap{position:relative; background:#000; border-radius:var(--radius-sm); overflow:hidden; aspect-ratio:16/9;}
+  .video-wrap video{width:100%; height:100%; display:block; background:#000;}
+  .video-empty{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:10px; color:var(--text-dim); text-align:center; padding:20px;
+  }
+  .caption-overlay{position:absolute; left:0; right:0; display:flex; flex-direction:column; align-items:center; gap:6px; pointer-events:none; padding:0 6%;}
+  .cap-top{top:6%;}
+  .cap-center{top:50%; transform:translateY(-50%);}
+  .cap-bottom{bottom:7%;}
+  .cap-line{
+    background:rgba(10,10,10,.72); color:#fff; padding:6px 14px; border-radius:6px;
+    font-size:clamp(13px,2.4vw,18px); font-weight:500; text-align:center; max-width:100%;
+    box-shadow:0 0 0 1px rgba(255,255,255,.06);
+  }
+
+  .file-row{display:flex; align-items:center; gap:10px; margin-top:12px; flex-wrap:wrap;}
+  .file-row input[type=file]{display:none;}
+  .file-name{font-size:12px; color:var(--text-dim);}
+
+  .timeline-section{margin-top:18px;}
+  .timeline-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
+  .timeline-head h3{font-size:13px; margin:0; color:var(--text-dim); font-weight:500; text-transform:uppercase; letter-spacing:.06em; font-family:inherit;}
+  .timeline-outer{position:relative; padding-top:8px;}
+  .ticks{display:flex; justify-content:space-between; font-size:10.5px; color:var(--text-faint); padding:0 2px 4px;}
+  .timeline{
+    position:relative; height:64px; background:var(--panel-2); border:1px solid var(--border);
+    border-radius:var(--radius-sm); overflow:hidden; cursor:pointer;
+  }
+  .timeline-track-label{position:absolute; left:8px; top:6px; font-size:10px; color:var(--text-faint); letter-spacing:.05em; pointer-events:none;}
+  .playhead{position:absolute; top:0; bottom:0; width:2px; background:var(--amber); box-shadow:0 0 6px var(--amber); pointer-events:none; z-index:5;}
+  .playhead::before{content:''; position:absolute; top:-1px; left:50%; transform:translateX(-50%); width:9px; height:9px; border-radius:50%; background:var(--amber);}
+  .caption-block{
+    position:absolute; top:22px; height:34px; border-radius:5px; background:var(--amber-dim);
+    border:1px solid var(--amber-line); display:flex; align-items:center; overflow:hidden;
+    cursor:grab; min-width:10px;
+  }
+  .caption-block.selected{background:var(--teal-dim); border-color:var(--teal);}
+  .caption-block .lbl{font-size:11px; color:var(--text); padding:0 8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:none;}
+  .resize-handle{position:absolute; top:0; bottom:0; width:8px; cursor:ew-resize;}
+  .resize-handle.left{left:0;}
+  .resize-handle.right{right:0;}
+
+  .add-cap-row{display:flex; align-items:center; gap:10px; margin-top:12px; flex-wrap:wrap;}
+  .add-cap-row .time-badge{font-size:12px; color:var(--text-dim); font-variant-numeric:tabular-nums;}
+
+  /* Sidebar tabs */
+  .side-panel{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; display:flex; flex-direction:column; max-height:none;}
+  .tabbar{display:flex; border-bottom:1px solid var(--border);}
+  .tabbtn{flex:1; padding:13px 10px; background:transparent; border:none; color:var(--text-dim); font-size:13px; cursor:pointer; border-bottom:2px solid transparent; font-weight:500;}
+  .tabbtn.active{color:var(--text); border-bottom-color:var(--amber);}
+  .tabpane{display:none; padding:16px; flex:1; overflow-y:auto;}
+  .tabpane.active{display:block;}
+
+  .field-label{font-size:11px; color:var(--text-dim); margin:0 0 4px; display:block; letter-spacing:.03em;}
+  .field-input, .field-textarea{
+    width:100%; background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+    border-radius:var(--radius-sm); padding:8px 10px; font-size:13.5px; font-family:inherit; resize:vertical;
+  }
+  .field-input:focus, .field-textarea:focus{outline:none; border-color:var(--amber-line);}
+  .field-group{margin-bottom:12px;}
+  .time-fields{display:flex; gap:8px;}
+  .time-fields > div{flex:1;}
+  .position-select{display:flex; gap:6px;}
+  .position-select button{flex:1; padding:6px; font-size:11.5px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--panel-2); color:var(--text-dim); cursor:pointer;}
+  .position-select button.active{background:var(--amber-dim); border-color:var(--amber-line); color:var(--text);}
+
+  .empty-side{color:var(--text-faint); font-size:12.5px; text-align:center; padding:24px 8px; line-height:1.7;}
+
+  .quiz-card{background:var(--panel-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; margin-bottom:12px;}
+  .quiz-card .qtop{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;}
+  .quiz-card .qnum{font-size:11px; color:var(--text-dim); font-weight:700;}
+  .choice-row{display:flex; align-items:center; gap:8px; margin-bottom:6px;}
+  .choice-row input[type=radio]{accent-color:var(--teal); flex-shrink:0;}
+  .choice-row input[type=text]{flex:1;}
+
+  /* ---------- Preview screen ---------- */
+  .preview-wrap{max-width:760px; margin:0 auto;}
+  .preview-video-wrap{position:relative; background:#000; border-radius:var(--radius); overflow:hidden; aspect-ratio:16/9; border:1px solid var(--border);}
+  .preview-video-wrap video{width:100%; height:100%; display:block;}
+  .quiz-section{margin-top:26px; display:none;}
+  .quiz-section.show{display:block;}
+  .quiz-section h2{font-size:20px; margin:0 0 4px;}
+  .quiz-section .lead{color:var(--text-dim); font-size:13.5px; margin:0 0 20px;}
+  .pq-card{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); padding:18px; margin-bottom:14px;}
+  .pq-card.correct{border-color:var(--teal);}
+  .pq-card.incorrect{border-color:var(--danger);}
+  .pq-card .pq-q{font-weight:700; font-size:15px; margin-bottom:12px; line-height:1.6;}
+  .pq-choice{
+    display:flex; align-items:flex-start; gap:10px; padding:9px 12px; border-radius:var(--radius-sm);
+    border:1px solid var(--border); margin-bottom:7px; cursor:pointer; font-size:13.5px; line-height:1.6;
+  }
+  .pq-choice:hover{border-color:var(--text-faint);}
+  .pq-choice input{margin-top:3px; accent-color:var(--teal);}
+  .pq-choice.mark-correct{border-color:var(--teal); background:var(--teal-dim);}
+  .pq-choice.mark-incorrect{border-color:var(--danger); background:var(--danger-dim);}
+  .pq-explain{font-size:12.5px; color:var(--text-dim); margin-top:8px; padding-top:8px; border-top:1px dashed var(--border); line-height:1.7; display:none;}
+  .pq-explain.show{display:block;}
+  .score-banner{
+    border-radius:var(--radius); padding:22px; text-align:center; margin-bottom:20px; border:1px solid var(--border);
+  }
+  .score-banner .num{font-family:'Shippori Mincho', serif; font-size:34px; font-weight:700; margin:0 0 4px;}
+  .score-banner .msg{font-size:13.5px; color:var(--text-dim);}
+  .score-good{border-color:var(--teal); background:var(--teal-dim);}
+  .score-mid{border-color:var(--amber); background:var(--amber-dim);}
+  .score-low{border-color:var(--danger); background:var(--danger-dim);}
+  .after-video-cta{display:flex; justify-content:center; margin-top:14px;}
+
+  .toast{
+    position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--panel-3); border:1px solid var(--border); color:var(--text);
+    padding:10px 18px; border-radius:999px; font-size:13px; opacity:0; pointer-events:none;
+    transition:opacity .2s, transform .2s; z-index:50; box-shadow:0 6px 24px rgba(0,0,0,.4);
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  .footnote{font-size:11.5px; color:var(--text-faint); margin-top:8px; line-height:1.6;}
+</style>
 </head>
 <body>
 
-    <h2>課題提出用 LLM使用ログ</h2>
-    <p>ログの保存方法の検討</p>
-
-    <!-- ログ1 -->
-    <details>
-        <summary>ログ1：Excel/CSVでのログ管理の是非</summary>
-        <div class="prompt">
-            <strong>【プロンプト】</strong><br>
-            chatの保存方法としてexelやcsvファイルのセルの中に質問、回答をそれぞれ一つづつ入れて保管するって方法どう思う？？<br>
-            ちょうど、webテストの玉手箱の解答集みたいな感じで
-        </div>
-        <div class="response"><strong>【回答】</strong>
-結論から言うと、「一問一答」の検索用データベースとして使うなら非常に有効だけど、チャット特有の「文脈」や「長文」を管理するには少し構造的な弱点がある方法です。
-
-【メリット】圧倒的な検索性、ポータビリティ、全体像の俯瞰
-【デメリット】改行コードによるデータ崩壊、セル内の視認性の悪さ、会話のラリー（文脈）が消える</div>
-    </details>
-
-    <!-- ログ2 -->
-    <details>
-        <summary>ログ2：課題提出に最適なフォーマットの提案</summary>
-        <div class="prompt">
-            <strong>【プロンプト】</strong><br>
-            pythonで制作物の提出を行う課題があるんだけお<br>
-            llmを使う場合はそのlogを含めて提出しなければいけなくて、word形式にすると文章量が伸びてしまうから・・・
-        </div>
-        <div class="response"><strong>【回答】</strong>
-Word形式での提出は視認性が著しく低下するため非効率です。代替案を3つ提示します。
-
-1. Markdown（.md）形式での提出
-2. Jupyter Notebook（.ipynb）形式への集約
-3. HTML形式（折りたたみタグの活用）</div>
-    </details>
-
-    <!-- ログ3 -->
-    <details>
-        <summary>ログ3：HTML形式のローカル動作確認</summary>
-        <div class="prompt">
-            <strong>【プロンプト】</strong><br>
-            htmlでやろうと思う<br>
-            これはローカルで動かすことできるかな？？
-        </div>
-        <div class="response"><strong>【回答】</strong>
-結論から言うと、ローカル環境で完全に動作します。
-HTMLの &lt;details&gt;（折りたたみ）と &lt;summary&gt;（見出し）タグは、Webサーバーや環境構築を一切必要としません。PCに標準で入っているWebブラウザでファイルを開くだけで機能します。（※HTMLのサンプルコードを提示）</div>
-    </details>
-
-    <!-- ログ4 -->
-    <details>
-        <summary>ログ4：ローカルファイルの開き方とURLの仕様</summary>
-        <div class="prompt">
-            <strong>【プロンプト】</strong><br>
-            開く時はどうなるの？先生にこれを入力してもらうの？？？<br>
-            file:///Users/tanakakatsuto/Desktop/.../llm_log.html
-        </div>
-        <div class="response"><strong>【回答】</strong>
-先生にそのURLを入力してもらうわけではありません。
-そのURLは「あなたのPC内だけの専用の住所（ローカルパス）」です。
-
-【提出から確認までの流れ】
-1. あなたがHTMLファイルそのものを課題としてアップロードする
-2. 先生がファイルをダウンロードする
-3. 先生がファイルをダブルクリックで開くと、自動的にブラウザが立ち上がって表示される</div>
-    </details>
-
-    <!-- ログ5 -->
-    <details>
-        <summary>ログ5：教員の理解度と提出時の配慮</summary>
-        <div class="prompt">
-            <strong>【プロンプト】</strong><br>
-            先生はこのファイルを見てこれはhtmlで開くんだなと理解できるかな
-        </div>
-        <div class="response"><strong>【回答】</strong>
-結論から述べると、教員は理解可能であると判断できます。
-Pythonの課題を評価する立場の教員であれば、拡張子が.htmlのファイルをブラウザで開くITリテラシーは当然有しています。
-
-ただし、評価者に余計な推測をさせないため、提出時のコメント欄やREADME等に「視認性向上のためHTML形式で作成しています。ブラウザで開き、見出しをクリックしてご確認ください」と案内を明記することが適切です。</div>
-    </details>
-
-    <details>
-        <summary>ログ6：筋トレ分析ツールのプロジェクト概要と要件抽出</summary>
-        <div class="prompt">
-            <strong>【プロンプト】</strong><br>
-            プログラミング基礎の最終課題に取り組みます<br>
-            LLMのログは他のLLMにあなたとの会話をhtml形式に変換してもらって記録します<br>
-            <br>
-            概要は以下の通り<br>
-            『2026_プロ基礎_期末レポート課題.pdf』添付<br>
-            テーマ: 『筋トレ分析ツール』<br>
-            <br>
-            ・AWSサーバ上に保存されているSQLデータベースを取り出してトレーニングの偏りや、成長度合いをグラフで表すプログラムを作ろうと考えています<br>
-            ・対象はトレーニングライト層（トレーニング習慣はできてきたが、客観的に自分のトレーニングを見れていない層）<br>
-            ・flaskrが入っていて、すでトレーニングを記録するインターフェイスはできています。本課題では蓄積されたデータを分析、グラフ化するツールの作成をゴールとします<br>
-            ・課題として新規性の欠如が挙げられますが、そこは目を瞑ってください
-        </div>
-        <div class="response"><strong>【回答】</strong>
-プログラミング基礎の期末レポート課題における要件定義を確認しました。提示されたプロジェクト概要に対し、客観的かつ厳格な視点から評価と課題抽出を行います。
-
-プロジェクト概要の評価と課題抽出
-既存のAWSインフラとFlaskr環境を活用し、蓄積されたSQLデータを分析・可視化するというシステム構成は、要件に対して現実的かつ妥当なアプローチです。しかし、提示された方針には看過できない課題が存在します。
-
-1. 新規性・独創性の放棄に対する是正要求
-「新規性の欠如は目を瞑る」との記載がありましたが、本プロジェクトにおいてこの妥協は容認できません。
-
-理由: 評価の観点として「課題設定の新規性・独創性」に5点が割り振られており、期末レポート課題の満点（20点）の25%を占めています 。これを意図的に放棄することは、プロジェクトの品質要件を満たさないことを意味します。  
-改善案: ゼロから新しいアプリケーションを作る必要はありません。「トレーニングライト層」というターゲット要件に紐づけ、データの見せ方や分析の切り口に独創性を持たせるべきです。
-例: 単純な部位別のグラフ化ではなく、「過去のデータから算出した推奨トレーニング部位の提示（サボり部位のアラート）」や、「同レベル層（想定値）との比較による成長度合いのスコア化」など、ライト層のモチベーション維持に直結する分析ロジックを実装してください。
-
-2. 生成AI利用履歴の記録と提出フォーマット
-他のLLMを使用して会話ログをHTML化し保存するアプローチは、記録の自動化・構造化の観点から効率的です。
-
-理由: 提出物③（ソースコード一式）には「生成AIの利用履歴（プロンプト、回答）」を含める必要があります 。  
-改善案: 変換されたHTMLファイルは、最終的にソースコードやREADMEとともに1つのZIPファイルにまとめて提出する要件があるため、ディレクトリ構成をあらかじめ整理しておくことを推奨します 。  
-
-3. 開発振り返りレポートの要件に対する事前準備
-開発完了後にレポートを作成するのではなく、開発中のプロセスそのものを検証対象とする必要があります。
-
-理由: 提出物④（開発振り返りレポート）では、「AIの回答で役にたったもの」「誤っていたもの」「自分で修正した部分」の明記が求められています 。本課題は「AIと協働してプログラムを作成し、その開発過程を記録・分析する」ことが主目的です 。  
-改善案: 開発を進める中で、AIが提示したSQLクエリやPython（データ処理）のコードにエラーがあった場合、それを即座に消去せず「どのようなエラーが出たか」「AIとどのようにやり取りして修正したか」をメモとして残しながら実装を進めてください。
-
-4. デモ動画作成時の制約事項の確認
-実装完了後の動画撮影において、規定のフォーマットを遵守しなければ減点対象となります。
-
-理由: 動画は3分程度を想定しており、10分を超過した場合は明確に減点されます 。また、冒頭で顔が映った状態で学生番号と氏名を名乗るという厳格な指示が存在します 。  
-改善案: 動画の構成案（台本）を事前に作成し、「ターゲット層への課題設定」「実際のグラフ描画デモ」「分析ロジックにおけるこだわりポイント」のみに絞り込んで録画を行う計画を立ててください 。  
-
-実装フェーズへ移行するため、現状のシステム構造を明確にする必要があります。現在のFlaskr環境において、分析対象となるSQLデータベースのテーブル定義（カラム構成や記録されているデータ型）はどのようになっていますか。</div>
-    </details>
-    <p>既存データベースおよびフロントエンドの修正</p>
-    <details>
-        <summary>ログ7：ディレクトリ構成とデータベーススキーマの評価</summary>
-        <div class="prompt">
-            <strong>【プロンプト】</strong><br>
-            rootのリスト Dockerfile  docker-compose.yml  flaskr<br>
-            flaskrのリスト __pycache__  _init_.py  main.py  requirements.txt  templates<br>
-            <br>
-            Field         | Type        | Null | Key | Default           | Extra             |<br>
-            +---------------+-------------+------+-----+-------------------+-------------------+<br>
-            | id            | int         | NO   | PRI | NULL              | auto_increment    |<br>
-            | training_date | date        | YES  |     | curdate()         | DEFAULT_GENERATED |<br>
-            | part          | varchar(50) | NO   |     | NULL              |                   |<br>
-            | menu          | varchar(50) | NO   |     | NULL              |                   |<br>
-            | weight        | float       | YES  |     | NULL              |                   |<br>
-            | reps          | int         | YES  |     | NULL              |                   |<br>
-            | created_at    | timestamp   | YES  |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED |<br>
-            | user_id       | int         | YES  |     | NULL              |                   |<br>
-            +---------------+-------------+------+-----+-------------------+-------------------+
-        </div>
-        <div class="response"><strong>【回答】</strong>
-ディレクトリ構成およびデータベーススキーマの評価
-提示されたインフラとアプリケーションの構造を評価した結果、要件である「トレーニングの偏りや成長度合いの分析・グラフ化」を実現する基盤として、看過できない論理的欠陥が複数存在します。
-システム全体の堅牢な土台を構築する上で、現在のデータベース設計には重大な脆弱性があります。AWS環境におけるVPCやサブネットの設計と同様に、一番下層のデータの整合性を担保する基盤設計が甘ければ、上位レイヤーでのFlaskアプリケーションによる分析・可視化処理は確実に破綻します。
-
-1. データベーススキーマの構造的欠陥
-現在のテーブル定義ではデータの不整合を招きやすく、分析ツールとしての最低要件を満たしていません。
-
-課題（整合性の欠如と集計の破綻）: part（部位）および menu（種目）が varchar(50) で定義されています。フリーテキストでの入力を許容した場合、「ベンチプレス」「bench press」「ﾍﾞﾝﾁﾌﾟﾚｽ」といった表記揺れが必然的に発生し、SQLを用いた GROUP BY での集計や、部位別の偏り分析が機能しなくなります。
-改善案: 部位および種目を管理するマスタテーブル（例: parts_master, menus_master）を別途作成し、本テーブルには外部キーとして part_id, menu_id (INT) を持たせてください。UI側ではプルダウン等で固定値を選択させる仕様に変更し、データの完全性を強制する必要があります。
-
-課題（セット数の概念の欠落）: 通常のトレーニングは同一種目を複数セット行います。現状のスキーマでは1レコードが「1セット単体」を指すのか「1種目のサマリ」を指すのか不明瞭であり、成長度合いの指標となる「総負荷量（Weight × Reps × Sets）」の論理的な算出が困難です。
-改善案: 1レコードを1セットとして扱う場合、何セット目かを記録する set_number (INT) カラムを追加してください。これにより、セットごとの重量・回数の推移という、より詳細な仮説検証型のデータ分析が可能になります。
-
-2. ディレクトリ構成・アーキテクチャの不備
-ビジネスレベルのコードベースとして、保守性と拡張性を阻害する要因が存在します。
-
-課題（モジュールの命名規則違反）: flaskr ディレクトリ内の初期化ファイルが _init_.py となっています。Pythonのパッケージとして正しく認識させるための特殊ファイル名は、アンダースコアが前後2つずつ必要です。
-改善案: 直ちに __init__.py へ修正してください。
-
-課題（フロントエンドリソース配置の欠落）: 本課題の最終目的は「グラフ化」です。ブラウザ上でグラフを描画するためのJavaScriptライブラリ（Chart.js等）やCSSを配置するべき領域が存在しません。
-改善案: flaskr ディレクトリ配下に static/ ディレクトリを作成し、静的ファイルを管理する構造を明確に追加してください。
-
-課題（責務の分離の欠如）: 現在の構成では main.py に処理が集中することが予見されます。ルーティング、SQLコマンドの実行（テーブルの作成、抽出、削除など）、そしてグラフ描画のための2次元配列や辞書型へのデータ整形ロジックを単一のファイルに記述することは容認できません。
-改善案: データベース接続やSQLクエリを実行するデータアクセス層（例: db.py または models.py）を分離し、アプリケーションの責務を適切に分割してください。
-
-これらの問題を修正し、堅牢なデータ基盤を確立した上で、分析処理の実装プロセスへ移行してください。</div>
-    </details>
-
-
-    <details>
-        <summary>ログ8：データベースの正規化とマスタテーブルの作成</summary>
-        <div class="prompt">
-            <strong>【プロンプト】</strong><br>
-            まずはデータベースの改良をします<br>
-            <br>
-            | id | training_date | part | menu     | weight | reps | created_at          | user_id |<br>
-            +----+---------------+------+----------+--------+------+---------------------+---------+<br>
-            |  4 | 2026-04-29    | Legs | SLDL     |     60 |    8 | 2026-05-04 07:45:09 |       1 |<br>
-            |  5 | 2026-02-08    | Legs | SLDL     |     60 |    8 | 2026-05-04 07:45:09 |       1 |<br>
-            |  6 | 2026-01-24    | Legs | SLDL     |     80 |    6 | 2026-05-04 07:45:09 |       1 |<br>
-            |  7 | 2026-04-29    | Legs | Leg Curl |     70 |    4 | 2026-05-04 07:45:09 |       1 |<br>
-            |  8 | 2026-03-23    | Legs | Leg Curl |     70 |    2 | 2026-05-04 07:45:09 |       1 |<br>
-            |  9 | 2026-02-18    | Legs | Leg Curl |     74 |    4 | 2026-05-04 07:45:09 |       1 |<br>
-            | 10 | 2026-02-08    | Legs | Leg Curl |     74 |    3 | 2026-05-04 07:45:09 |       1 |<br>
-            | 11 | 2026-02-01    | Legs | Leg Curl |     67 |    6 | 2026-05-04 07:45:09 |       1 |<br>
-            | 12 | 2026-01-24    | Legs | Leg Curl |     67 |    5 | 2026-05-04 07:45:09 |       1 |<br>
-            | 13 | 2026-01-13    | Legs | Leg Curl |     67 |    6 | 2026-05-04 07:45:09 |       1 |<br>
-            <br>
-            id | username  | password_hash | created_at          |<br>
-            +----+-----------+---------------+---------------------+<br>
-            |  1 | kachu9898 | scrypt:...    | 2026-05-04 09:06:04 |<br>
-            |  2 | kouta     | scrypt:...    | 2026-05-04 09:19:11 |<br>
-            |  3 | amon0529  | scrypt:...    | 2026-05-04 09:46:16 |<br>
-            +----+-----------+---------------+---------------------+<br>
-            3 rows in set (0.00 sec)<br>
-            <br>
-            parts_master, menus_master<br>
-            を作成して結合させましょう
-        </div>
-        <div class="response"><strong>【回答】</strong>
-データベース正規化の実行計画
-提示されたデータレコードを確認しました。現在の構造からマスタテーブルを分離し、外部キー制約を設けることで、データの不整合を排除します。
-データベース層という強固な基盤を構築するレイヤーでの設計の甘さは、上位のアプリケーション層へ致命的な影響を与えます。論理的で仮説検証型のトラブルシューティングを可能にするためにも、初期段階での厳格な正規化は必須の要件です。
-
-1. マスタテーブルの設計と作成 (DDL)
-part（部位）とmenu（種目）は依存関係にあります（例：SLDLはLegsに属する）。したがって、独立した2つのマスタを作るのではなく、menus_masterがparts_masterの外部キーを持つ構造とすることが論理的です。
-
-SQL
--- 部位マスタの作成
-CREATE TABLE parts_master (
-    part_id INT AUTO_INCREMENT PRIMARY KEY,
-    part_name VARCHAR(50) NOT NULL UNIQUE
-);
-
--- 種目マスタの作成
-CREATE TABLE menus_master (
-    menu_id INT AUTO_INCREMENT PRIMARY KEY,
-    part_id INT NOT NULL,
-    menu_name VARCHAR(50) NOT NULL UNIQUE,
-    FOREIGN KEY (part_id) REFERENCES parts_master(part_id)
-);
-
-2. 既存データの移行 (DML)
-現在のテーブル（ここでは training_records と仮定）から重複を排除し、マスタテーブルへデータを流し込みます。
-
-SQL
--- 部位データの抽出と移行
-INSERT INTO parts_master (part_name)
-SELECT DISTINCT part FROM training_records WHERE part IS NOT NULL;
-
--- 種目データの抽出と移行（部位マスタとの紐付け）
-INSERT INTO menus_master (part_id, menu_name)
-SELECT DISTINCT p.part_id, t.menu
-FROM training_records t
-JOIN parts_master p ON t.part = p.part_name
-WHERE t.menu IS NOT NULL;
-
-3. トランザクションテーブルの構造変更 (DDL)
-正規化の原則に従い、training_records から冗長な文字列カラムを削除し、menu_id のみを保持します。部位情報（part）は menus_master を経由して取得可能となるため、トランザクションテーブルに持たせることは設計上の無駄（冗長性）となります。
-
-SQL
--- 1. menu_idカラムの追加
-ALTER TABLE training_records ADD COLUMN menu_id INT AFTER training_date;
-
--- 2. 既存データへのmenu_idの割り当て
-UPDATE training_records t
-JOIN menus_master m ON t.menu = m.menu_name
-SET t.menu_id = m.menu_id;
-
--- 3. 不要になった文字列カラムの削除と外部キー制約の追加
-ALTER TABLE training_records
-DROP COLUMN part,
-DROP COLUMN menu,
-ADD FOREIGN KEY (menu_id) REFERENCES menus_master(menu_id);
-
-4. 構造変更による評価と残存課題
-データ整合性の確立: 文字列による自由入力が排除されたことで、表記揺れによる集計エラーが物理的に発生しなくなりました。
-クエリ処理の最適化: グラフ化に必要なデータ抽出の際、INT型のインデックスを用いた JOIN や GROUP BY が適用されるため、文字列検索と比較して処理の正確性が担保されます。
-未解決の課題（セット数の欠落）: 前回のレビューで指摘した「セット数の概念」の追加が実行されていません。提示されたデータ（id: 4と7など同日の別記録）を見る限り、1レコード＝1セットとして記録されていると推測されます。しかし、それが「第何セット目か」を識別する set_number カラムが存在しなければ、重量推移や疲労度の分析など、説得力のある成長度合いの算出は不可能です。速やかにスキーマへ反映させることを要求します。</div>
-    </details>
-
-    <details>
-        <summary>ログ9：テーブル結合（JOIN）コマンドの出力と集計ロジック</summary>
-        <div class="prompt">
-            <strong>【プロンプト】</strong><br>
-            できました<br>
-            テーブルを結合するコマンド出力してください
-        </div>
-        <div class="response"><strong>【回答】</strong>
-マスタテーブルの作成およびデータの移行完了を確認しました。
-構築された新しいデータベース構造（training_records、menus_master、parts_master）において、分析およびグラフ化に必要なデータを抽出するための結合（JOIN）コマンドを提示します。
-
-用途に応じて使い分けられるよう、3つのクエリを出力します。
-
-1. 全データを結合して詳細一覧を取得する基本クエリ
-トランザクションデータに、対応する種目名と部位名を紐付け、時系列順に並べるための基本構造です。
-
-SQL
-SELECT 
-    tr.id,
-    tr.training_date,
-    pm.part_name AS part,
-    mm.menu_name AS menu,
-    tr.weight,
-    tr.reps,
-    tr.user_id
-FROM training_records tr
-INNER JOIN menus_master mm ON tr.menu_id = mm.menu_id
-INNER JOIN parts_master pm ON mm.part_id = pm.part_id
-ORDER BY tr.training_date DESC, tr.id DESC;
-
-2. 部位別のトレーニング偏りを分析するための集計クエリ
-「トレーニングライト層」に対して、どの部位に負荷が偏っているかを可視化（円グラフや棒グラフ用）するための2次元配列の元データとなるクエリです。ここでは総負荷量（重量 × 回数）を部位ごとに集計します。
-
-SQL
-SELECT 
-    pm.part_name AS part,
-    SUM(tr.weight * tr.reps) AS total_volume,
-    COUNT(tr.id) AS total_sets
-FROM training_records tr
-INNER JOIN menus_master mm ON tr.menu_id = mm.menu_id
-INNER JOIN parts_master pm ON mm.part_id = pm.part_id
-WHERE tr.user_id = 1  -- 特定のユーザーでフィルタリング
-GROUP BY pm.part_id, pm.part_name
-ORDER BY total_volume DESC;
-
-3. 特定種目の成長度合い（重量推移）を分析するためのクエリ
-特定の種目（例：SLDLやLeg Curl）の重量が時系列でどのように向上しているかを可視化（折れ線グラフ用）するためのクエリです。
-
-SQL
-SELECT 
-    tr.training_date,
-    MAX(tr.weight) AS max_weight,
-    SUM(tr.weight * tr.reps) AS daily_volume
-FROM training_records tr
-INNER JOIN menus_master mm ON tr.menu_id = mm.menu_id
-WHERE tr.user_id = 1 AND mm.menu_name = 'Leg Curl'
-GROUP BY tr.training_date
-ORDER BY tr.training_date ASC;
-
-厳格な仕様評価と次のステップへの課題
-上記クエリによって、Flask側で取得すべきデータ（辞書型や2次元配列）の骨子は作れます。しかし、前回のレビューで指摘した「セット数（set_number）の概念の欠落」が、ここで明確な論理的限界として表面化します。
-
-データの解釈におけるリスク: クエリ2やクエリ3において COUNT(tr.id) をセット数として集計していますが、これは「1レコードが1セットである」という運用のルール（暗黙の了解）に依存しています。もしユーザーが1日に同じ重量・回数を2回誤って入力した場合や、セットの順序を記録したい場合、データの整合性を担保できません。
-
-ビジネス文章・レポートにおける説得力: 期末レポートの「自分で修正した部分」「AI活用・検証」の項目において、このセット数の課題を認識し、どうデータベース設計に反映させたか（あるいは運用の制約としたか）を論理的に記述することが、評価（5点中何点取れるか）に直結します。
-
-現状のスキーマのままFlaskでの実装（Pythonによるデータ整形とChart.js等への受け渡し）に進むか、それともセット数カラムを追加してから進むか、方針を提示してください。進む場合は、main.py に記述するデータ抽出ロジック（SQL実行部）の作成に移ります。</div>
-    </details>
-
-    <details>
-        <summary>ログ10：設計思想に基づくテーブル名の修正（workout_memo）と結合クエリ</summary>
-        <div class="prompt">
-            <strong>【プロンプト】</strong><br>
-            それなんだけど<br>
-            そもそものテーマとして私はトレーニング初級者が無理なく記録することができるアプリケーションとしてこれを開発したんだ<br>
-            <br>
-            だから、その日のセットごとのマックス重量を記録するようにしているんだ<br>
-            だからセット数という概念がないのでそれは必要ないよ<br>
-            <br>
-            それでworkout_memoに書き換えた結合のコマンドを出力して欲しい
-        </div>
-        <div class="response"><strong>【回答】</strong>
-「初級者が無理なく記録を継続する」というターゲットの行動特性（UX）に基づき、「セット数を排除し、その日のマックス重量のみを管理する」という明確な設計思想を確認しました。
-この設計意図は、複雑な入力を嫌うライト層向けのシステムとして論理的であり、期末レポートにおける「課題設定」の正当性を担保する根拠となります。
-テーブル名を workout_memo に適応させ、セット数概念を排除した集計・結合用のSQLコマンドを出力します。
-
-1. 全データ結合（詳細一覧取得クエリ）
-workout_memo のトランザクションデータに、種目名と部位名を紐付けて時系列順に抽出します。
-
-SQL
-SELECT 
-    wm.id,
-    wm.training_date,
-    pm.part_name AS part,
-    mm.menu_name AS menu,
-    wm.weight,
-    wm.reps,
-    wm.user_id
-FROM workout_memo wm
-INNER JOIN menus_master mm ON wm.menu_id = mm.menu_id
-INNER JOIN parts_master pm ON mm.part_id = pm.part_id
-ORDER BY wm.training_date DESC, wm.id DESC;
-
-2. 部位別の偏り分析（頻度・負荷集計クエリ）
-セット数が存在しないため、「その部位をトレーニングした日数（記録回数）」および「マックス重量×回数による擬似的な総負荷量」を部位ごとに集計します。偏りを可視化する円グラフのデータソースとして使用します。
-
-SQL
-SELECT 
-    pm.part_name AS part,
-    SUM(wm.weight * wm.reps) AS estimated_volume,
-    COUNT(wm.id) AS training_days
-FROM workout_memo wm
-INNER JOIN menus_master mm ON wm.menu_id = mm.menu_id
-INNER JOIN parts_master pm ON mm.part_id = pm.part_id
-WHERE wm.user_id = 1  -- 対象ユーザーIDでフィルタリング
-GROUP BY pm.part_id, pm.part_name
-ORDER BY estimated_volume DESC;
-
-3. 特定種目の成長度合い（重量推移クエリ）
-「初級者の成長度合い」を折れ線グラフで視覚化するためのクエリです。1日1レコードを前提とし、日付ごとの重量と回数の推移をタイムライン順に取得します。
-
-SQL
-SELECT 
-    wm.training_date,
-    wm.weight AS max_weight,
-    wm.reps
-FROM workout_memo wm
-INNER JOIN menus_master mm ON wm.menu_id = mm.menu_id
-WHERE wm.user_id = 1 AND mm.menu_name = 'Leg Curl' -- 任意の種目名
-ORDER BY wm.training_date ASC;
-
-期末レポート（評価点獲得）を見据えたシステム評価
-このスキーマ構成でFlask（Python）側のデータ整形処理へ進むにあたり、レポートの「AI活用・検証」「自分で修正した部分」に記述すべき技術的論理点を整理します。
-
-仕様の正当性（レポートへの記載材料）:
-「精密な総負荷量計算（重量×回数×セット数）」というエンジニア・中上級者向けの要件をあえて排し、「入力負荷の最小化による継続率向上」を優先した点。これは、データ構造を簡素化（1日1種目1レコード）するというトレードオフの意思決定として、評価の観点である「新規性・独創性」におけるロジックとして成立します。
-
-技術的な残存リスク（対応必須事項）:
-1日1レコードを前提とする仕様であるため、ユーザーが同日に同じ種目を「誤って2回登録」した場合、クエリ3の折れ線グラフの描画（同一X軸上に2プロット発生）が破綻します。
-対策: アプリケーション側（Python）で同日同種目の重複登録をバリデーションで弾くか、データベース側で (training_date, menu_id, user_id) の複合ユニーク制約（UNIQUE）を課す仕様を検討してください。
-
-データ基盤のクエリは確定しました。次は、Flask（main.py）内でこれらのSQLを実行し、フロントエンド（グラフ描画ライブラリ）に渡すための「2次元配列」や「辞書型」へのデータ整形ロジック（Pythonコード）の実装に移ります。指示を出してください。</div>
-    </details>
-
-
-    <details>
-        <summary>ログ11：データベース正規化に伴うmain.pyの修正と分析エンドポイントの追加</summary>
-        <div class="prompt">
-            <strong>【プロンプト】</strong><br>
-            | menus_master          |<br>
-            | parts_master          |<br>
-            | users                 |<br>
-            | workout_memo          <br>
-            <br>
-            from flask import Flask, render_template, request, redirect, url_for, session, flash<br>
-            import mysql.connector<br>
-            from werkzeug.security import generate_password_hash, check_password_hash<br>
-            from functools import wraps<br>
-            <br>
-            app = Flask(__name__)<br>
-            # セッション暗号化用の秘密鍵<br>
-            app.secret_key = 'tanaka_workout_secret_key'<br>
-            <br>
-            def get_db_connection():<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;return mysql.connector.connect(<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;host='mysql-service',  # ここを 'db' から 'mysql-service' に変更<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user='root',<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;password='root_password',<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;database='my_database'<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;)<br>
-            <br>
-            # ログインしていないとアクセスできないようにするガード（デコレータ）<br>
-            def login_required(f):<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;@wraps(f)<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;def decorated_function(*args, **kwargs):<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if 'user_id' not in session:<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return redirect(url_for('login'))<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return f(*args, **kwargs)<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;return decorated_function<br>
-            <br>
-            # 部位ごとの初期種目リスト<br>
-            MENU_OPTIONS = {<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;'Chest': ['Bench Press', 'Machine Incline Press', 'Cable Fly', 'Incline Dumbbell Press', 'Pec Fly'],<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;'Back': ['Wide-Grip Chin-up', 'Machine Pulldown', 'Lat Pulldown'],<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;'Legs': ['SLDL', 'Leg Curl', 'Squat', 'Smith Machine Squat', 'Leg Extension', 'Machine Leg Press'],<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;'Shoulders': ['Machine Shoulder Press', 'Military Press', 'Dumbbell Shoulder Press'],<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;'Biceps': ['Cable Curl', 'EZ Bar Barbell Curl', 'Incline Hammer Curl'],<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;'Triceps': ['French Press', 'JM Press']<br>
-            }<br>
-            <br>
-            # --- ユーザー認証系 ---<br>
-            <br>
-            @app.route('/register', methods=['GET', 'POST'])<br>
-            def register():<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;if request.method == 'POST':<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;username = request.form['username']<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;password = request.form['password']<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hashed_pw = generate_password_hash(password)<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;conn = get_db_connection()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cur = conn.cursor()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try:<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cur.execute('INSERT INTO users (username, password_hash) VALUES (%s, %s)', (username, hashed_pw))<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;conn.commit()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return redirect(url_for('login'))<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;except mysql.connector.Error:<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return "このユーザー名は既に使われています。"<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;finally:<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cur.close()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;conn.close()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;return render_template('register.html')<br>
-            <br>
-            @app.route('/login', methods=['GET', 'POST'])<br>
-            def login():<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;if request.method == 'POST':<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;username = request.form['username']<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;password = request.form['password']<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;conn = get_db_connection()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cur = conn.cursor()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cur.execute('SELECT id, password_hash FROM users WHERE username = %s', (username,))<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user = cur.fetchone()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cur.close()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;conn.close()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if user and check_password_hash(user[1], password):<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;session['user_id'] = user[0]<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;session['username'] = username<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return redirect(url_for('home'))<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else:<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return "ユーザー名またはパスワードが違います。"<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;return render_template('login.html')<br>
-            <br>
-            @app.route('/logout')<br>
-            def logout():<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;session.clear()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;return redirect(url_for('login'))<br>
-            <br>
-            # --- アプリ本体 ---<br>
-            <br>
-            @app.route('/')<br>
-            @login_required<br>
-            def home():<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;return render_template('home.html', parts=MENU_OPTIONS.keys(), username=session['username'])<br>
-            <br>
-            @app.route('/workout/&lt;part&gt;')<br>
-            @login_required<br>
-            def part_page(part):<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;user_id = session['user_id']<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;conn = get_db_connection()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;cur = conn.cursor()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;# 自分の過去の種目を取得してサジェストに追加<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;cur.execute('SELECT DISTINCT menu FROM workout_memo WHERE part = %s AND user_id = %s', (part, user_id))<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;recorded_menus = [row[0] for row in cur.fetchall()]<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;base_menus = MENU_OPTIONS.get(part, [])<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;all_menus = sorted(list(set(base_menus + recorded_menus)))<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;# 自分の履歴だけを降順で取得<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;cur.execute('''<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SELECT * FROM workout_memo <br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WHERE part = %s AND user_id = %s <br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ORDER BY training_date DESC, id DESC<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;''', (part, user_id))<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;logs = cur.fetchall()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;cur.close()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;conn.close()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;return render_template('part.html', part=part, menus=all_menus, logs=logs)<br>
-            <br>
-            @app.route('/add', methods=['POST'])<br>
-            @login_required<br>
-            def add_workout():<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;part = request.form['part']<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;# --- ここから条件分岐を追加 ---<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;selected_menu = request.form['menu']<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;if selected_menu == 'other':<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# 「＋ 新しい種目を追加する」が選ばれた場合は、隠し入力欄(new_menu)の値を使う<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;menu = request.form['new_menu'] <br>
-            &nbsp;&nbsp;&nbsp;&nbsp;else:<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# それ以外はプルダウンで選んだ既存の種目名をそのまま使う<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;menu = selected_menu<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;# --- ここまで ---<br>
-            <br>
-            &nbsp;&nbsp;&nbsp;&nbsp;weight = request.form['weight']<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;reps = request.form['reps']<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;user_id = session['user_id']<br>
-            <br>
-            &nbsp;&nbsp;&nbsp;&nbsp;conn = get_db_connection()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;cur = conn.cursor()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;cur.execute('''<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;INSERT INTO workout_memo (part, menu, weight, reps, user_id, training_date) <br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;VALUES (%s, %s, %s, %s, %s, CURDATE())<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;''', (part, menu, weight, reps, user_id))<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;conn.commit()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;cur.close()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;conn.close()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;return redirect(url_for('part_page', part=part))<br>
-            <br>
-            # --- ここが抜けていないか、綴りが合っているか確認 ---<br>
-            @app.route('/delete/&lt;int:log_id&gt;', methods=['POST'])<br>
-            @login_required<br>
-            def delete_workout(log_id):<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;user_id = session['user_id']<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;conn = get_db_connection()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;cur = conn.cursor()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;# 自分のデータだけを消す<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;cur.execute('DELETE FROM workout_memo WHERE id = %s AND user_id = %s', (log_id, user_id))<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;conn.commit()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;cur.close()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;conn.close()<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;# 迷子にならないよう、一旦必ずホームに戻す設定でテスト<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;return redirect('/')<br>
-            <br>
-            if __name__ == "__main__":<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;app.run(host="0.0.0.0", port=80)<br>
-            <br>
-            <br>
-            sql内の構成書き換えました<br>
-            また、main.pyは以上のようになっています
-        </div>
-        <div class="response"><strong>【回答】</strong>
-データベースの正規化を実行した事実を確認しました。しかし、提示された main.py を評価した結果、バックエンド側のロジックが新しいデータベーススキーマに一切適合しておらず、現在このコードを実行すると100%の確率でSQLエラー（存在しないカラムへのアクセス）が発生し、システムがクラッシュします。
-インフラ・DB層の設計変更をアプリケーション層へ反映させるという、基本設計の連動性が欠落しています。直ちに以下の修正を適用してください。
-
-現状のコードにおける致命的な欠陥と修正案
-
-1. マスタデータのハードコーディング（冗長性の放置）
-課題: データベース側に parts_master, menus_master を構築したにもかかわらず、main.py 内に MENU_OPTIONS として辞書型データをハードコーディングしています。これではデータの一元管理が破綻します。
-解決策: MENU_OPTIONS の定義を完全に削除し、ホーム画面の部位一覧やプルダウンの種目一覧は、すべてデータベースのマスターテーブルから動的に取得（SELECT）する構造に変更してください。
-
-2. データ取得（GET）ロジックの不整合
-課題: part_page 関数内において、SELECT * FROM workout_memo WHERE part = %s という、既に削除された part カラムを指定するクエリが残存しています。
-解決策: 先のステップで定義した「詳細一覧取得クエリ（JOIN）」を使用し、menus_master 経由でデータを取得するように書き換えます。
-
-3. データ登録（POST）ロジックの完全な破綻
-課題: add_workout 関数で、存在しない part, menu カラムへ文字列を INSERT しようとしています。さらに「新しい種目を追加する（other）」機能は、新規種目を menus_master へ登録してから、その menu_id を使って workout_memo に登録するという2段階の処理（トランザクション）が必要です。
-解決策: リクエストパラメータから部位名（part）と種目名（menu）を受け取り、それらを ID に変換・新規発行した上でトランザクションデータへ記録する処理に作り変えます。
-
-main.py の修正コード（抜粋）
-既存の main.py の「アプリ本体」部分（@app.route('/') 以降）を以下のロジックに置き換えてください。同時に、本プロジェクトの目的である分析用のエンドポイント（/analysis）を新規に定義します。
-
-Python
-# --- アプリ本体 ---
-@app.route('/')
-@login_required
-def home():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    # ハードコーディングを廃止し、マスタから部位一覧を取得
-    cur.execute('SELECT part_name FROM parts_master ORDER BY part_id')
-    parts = [row[0] for row in cur.fetchall()]
-    cur.close()
-    conn.close()
-    return render_template('home.html', parts=parts, username=session['username'])
-
-@app.route('/workout/&lt;part&gt;')
-@login_required
-def part_page(part):
-    user_id = session['user_id']
-    conn = get_db_connection()
-    cur = conn.cursor(dictionary=True) # 辞書型で取得
-    
-    # 選択された部位に紐づく種目マスタを取得
-    cur.execute('''
-        SELECT m.menu_name 
-        FROM menus_master m
-        JOIN parts_master p ON m.part_id = p.part_id
-        WHERE p.part_name = %s
-    ''', (part,))
-    all_menus = [row['menu_name'] for row in cur.fetchall()]
-    
-    # ユーザーのトレーニング履歴をJOINで取得（正規化対応）
-    cur.execute('''
-        SELECT wm.id, wm.training_date, mm.menu_name AS menu, wm.weight, wm.reps
-        FROM workout_memo wm
-        JOIN menus_master mm ON wm.menu_id = mm.menu_id
-        JOIN parts_master pm ON mm.part_id = pm.part_id
-        WHERE pm.part_name = %s AND wm.user_id = %s
-        ORDER BY wm.training_date DESC, wm.id DESC
-    ''', (part, user_id))
-    logs = cur.fetchall()
-    
-    cur.close()
-    conn.close()
-    return render_template('part.html', part=part, menus=all_menus, logs=logs)
-
-@app.route('/add', methods=['POST'])
-@login_required
-def add_workout():
-    part_name = request.form['part']
-    selected_menu = request.form['menu']
-    weight = request.form['weight']
-    reps = request.form['reps']
-    user_id = session['user_id']
-
-    if selected_menu == 'other':
-        menu_name = request.form['new_menu'] 
-    else:
-        menu_name = selected_menu
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-    
-    try:
-        # 1. 部位IDの取得
-        cur.execute('SELECT part_id FROM parts_master WHERE part_name = %s', (part_name,))
-        part_row = cur.fetchone()
-        if not part_row:
-            raise ValueError("不正な部位が選択されました。")
-        part_id = part_row[0]
-
-        # 2. 種目IDの取得、または新規マスタ登録
-        cur.execute('SELECT menu_id FROM menus_master WHERE menu_name = %s AND part_id = %s', (menu_name, part_id))
-        menu_row = cur.fetchone()
-        
-        if menu_row:
-            menu_id = menu_row[0]
-        else:
-            # マスタに存在しない場合は新規登録
-            cur.execute('INSERT INTO menus_master (part_id, menu_name) VALUES (%s, %s)', (part_id, menu_name))
-            menu_id = cur.lastrowid
-
-        # 3. トランザクションデータ（workout_memo）への記録
-        cur.execute('''
-            INSERT INTO workout_memo (menu_id, weight, reps, user_id, training_date) 
-            VALUES (%s, %s, %s, %s, CURDATE())
-        ''', (menu_id, weight, reps, user_id))
-        
-        conn.commit()
-    except Exception as e:
-        conn.rollback()
-        # 実運用ではフラッシュメッセージ等でエラーを通知すべきですが、今回は簡略化します
-        print(f"Error during insert: {e}")
-    finally:
-        cur.close()
-        conn.close()
-        
-    return redirect(url_for('part_page', part=part_name))
-
-# --- 分析・グラフ化用エンドポイント（新規追加） ---
-@app.route('/analysis')
-@login_required
-def analysis():
-    user_id = session['user_id']
-    conn = get_db_connection()
-    cur = conn.cursor(dictionary=True)
-    
-    # 部位別の偏り集計（総負荷量と頻度）
-    cur.execute('''
-        SELECT pm.part_name, SUM(wm.weight * wm.reps) AS estimated_volume, COUNT(wm.id) AS training_days
-        FROM workout_memo wm
-        JOIN menus_master mm ON wm.menu_id = mm.menu_id
-        JOIN parts_master pm ON mm.part_id = pm.part_id
-        WHERE wm.user_id = %s
-        GROUP BY pm.part_id, pm.part_name
-    ''', (user_id,))
-    volume_data = cur.fetchall()
-    
-    cur.close()
-    conn.close()
-    
-    # 取得したデータをHTML（Chart.js等）へ渡す
-    return render_template('analysis.html', volume_data=volume_data)
-
-データベースの論理構造とアプリケーションの処理が一致した状態となりました。
-次フェーズとして、新規に作成した /analysis エンドポイントが渡すデータを視覚化するため、フロントエンド側（templates/analysis.html）におけるChart.jsの描画実装に着手してください。</div>
-    </details>
-<p>データ分析ツールの作成</p>
-    <details>
-        <summary>ログ12：HTMLテンプレートの不整合修正と分析画面への導線追加</summary>
-        <div class="prompt">
-            <strong>【プロンプト】</strong><br>
-            フロントエンドの各種テンプレート（home.html, menu.html, part.html, register.html）のソースコードを提示し、バックエンドの仕様変更に合わせた修正を依頼。
-        </div>
-        <div class="response"><strong>【回答】</strong>
-    バックエンドの処理ロジック変更に伴い、テンプレート群に潜む致命的な不整合や不要なコードの修正を指示しました。<br>
-    <br>
-    1. データ構造の不整合によるクラッシュの防止（part.html）<br>
-    辞書型でのデータ取得に合わせ、変数の参照方法を配列のインデックスからキー名（log[training_date]など）での参照へ修正。<br>
-    <br>
-    2. デッドコードの破棄（menu.html）<br>
-    プルダウン選択への仕様変更により、どこからも遷移されなくなったmenu.htmlのファイル削除を指示。<br>
-    <br>
-    3. 分析機能への導線追加（home.html）<br>
-    本プロジェクトの最終目的である「分析・グラフ化ツール」へ遷移するためのリンクボタンをホーム画面に追加。<br>
-    <br>
-    インターフェースの整合性確保を確認し、次ステップとして analysis.html にて Chart.js を用いたデータ可視化（グラフ描画）の実装に進むよう要求しました。</div>
-    </details>
-
-
-    <details>
-    <summary>ログ13：Flaskのディレクトリ構造の是正とグラフ描画（Chart.js）の実装</summary>
-    <div class="prompt">
-        <strong>【プロンプト】</strong><br>
-        作成したHTMLファイルをstaticフォルダへ移動し、現在のtemplateフォルダは破棄してよいかという質問。
+<div class="app-header">
+  <div class="brand" id="brandHome" style="cursor:pointer;">
+    <div class="mark"></div>
+    <div>
+      <h1>テロップ教材ビルダー</h1>
+      <div class="sub">動画 × テロップ × クイズで研修教材をひとつに</div>
     </div>
-    <div class="response"><strong>【回答】</strong>
-    Flaskフレームワークのアーキテクチャに対する致命的な認識の誤りを指摘し、ディレクトリ構成を是正しました。<br>
-    <br>
-    1. ディレクトリ配置の厳格なルール<br>
-    render_template関数はデフォルトで templates（末尾のsが必須）ディレクトリを参照するため、HTMLファイルはすべてここに配置する必要があります。<br>
-    また、staticフォルダはCSSや画像などの静的リソース専用であり、動的なHTMLを置く場所ではないと説明しました。<br>
-    <br>
-    2. analysis.html の実装（Chart.jsの活用）<br>
-    本課題の主目的である分析ツールのフロントエンド実装を提示しました。<br>
-    バックエンドから渡される辞書型データ（volume_data）を受け取り、Chart.jsを用いて部位別の総負荷量を円グラフとして可視化するコードを提供しています。</div>
-    </details>
+  </div>
+  <div class="header-right" id="headerActions"></div>
+</div>
 
-
-
-<details>
-    <summary>ログ14：データ分析フェーズの要件定義とアーキテクチャ設計</summary>
-    <div class="prompt">
-        <strong>【プロンプト】</strong><br>
-        Pythonを用いたデータ分析・可視化フェーズへの移行構想。<br>
-        日付と重量を辞書型にまとめ、種目別・部位別のグラフ（重量推移、トレーニング頻度）を出力するプログラムを作成したいと提案。
+<main>
+  <!-- LIST SCREEN -->
+  <section class="screen active" id="screen-list">
+    <div class="list-hero">
+      <h2 class="serif">教材一覧</h2>
+      <p>動画に字幕を重ね、視聴後に理解度クイズを出す研修教材を作成します。作った教材はブラウザに自動で保存されます。</p>
     </div>
-    <div class="response"><strong>【回答】</strong>
-提示された要件に対する曖昧さを指摘し、システムアーキテクチャとデータ構造の設計方針を是正しました。<br>
-<br>
-1. アプリケーションアーキテクチャの決定<br>
-ターゲット層（初級者）のUXを考慮し、別プログラムでの画像出力ではなく、既存のFlaskアプリに統合してフロントエンド（Chart.jsなど）で動的に描画するシームレスな設計を徹底するよう要求。<br>
-<br>
-2. データ構造の最適化<br>
-単純な日付と重量のペア付けはフロントエンドの描画ライブラリに不適合であると指摘。X軸（日付の配列）とY軸（重量の配列）を分離し、構造化してフロントエンドへ渡すロジックへの変更を指示。<br>
-<br>
-3. 分析指標（SQLクエリ）の具体化<br>
-種目別の重量推移（日別の最大重量）および、月別のトレーニング頻度推移を取得するための具体的なSQL抽出ロジックを定義。<br>
-<br>
-開発を進めるにあたり、Webブラウザ上で動的なグラフとして提供する方針でAPI設計を進めるかどうかの意思決定を求めました。</div>
-</details>
+    <div class="project-grid" id="projectGrid"></div>
+  </section>
 
-    <!-- ログ15 -->
-<details>
-    <summary>ログ15：分析ダッシュボード（/analysis）のPythonコード解説</summary>
-    <div class="prompt">
-        <strong>【プロンプト】</strong><br>
-        内容を省略しない<br>
-        原文そのまま<br>
-        HTML形式<br>
-        <br>
-        質問<br>
-        <br>
-<pre>
-# ==========================================
-# 分析ダッシュボード
-# ==========================================
-@app.route("/analysis", methods=["GET"])
-@login_required
-def analysis():
-    user_id = session["user_id"]
-    selected_menu_id = request.args.get("menu_id", type=int)
+  <!-- EDITOR SCREEN -->
+  <section class="screen" id="screen-editor">
+    <div class="editor-title-row">
+      <input class="title-input" id="titleInput" placeholder="教材のタイトルを入力">
+      <span class="dirty-dot" id="dirtyDot" title="未保存の変更があります"></span>
+    </div>
 
-    with get_db().cursor(dictionary=True) as cur:
-        # 部位別ボリューム
-        cur.execute("""
-            SELECT pm.part_name, SUM(wm.weight * wm.reps) AS total_volume
-            FROM workout_memo wm
-            JOIN menus_master mm ON wm.menu_id = mm.menu_id
-            JOIN parts_master pm ON mm.part_id = pm.part_id
-            WHERE wm.user_id = %s
-            GROUP BY pm.part_id, pm.part_name
-        """, (user_id,)) # ← カンマで区切り、(user_id,) を追加
-        volume_raw = cur.fetchall()
-        
-        # トレーニング頻度推移
-        cur.execute("""
-            SELECT DATE_FORMAT(training_date, "%Y-%m") AS month, COUNT(DISTINCT training_date) AS active_days
-            FROM workout_memo
-            WHERE user_id = %s
-            GROUP BY month
-            ORDER BY month ASC
-        """, (user_id,))
-        freq_raw = cur.fetchall()
-        
-        # 種目マスタプルダウン用
-        cur.execute("""
-            SELECT DISTINCT mm.menu_id, mm.menu_name
-            FROM workout_memo wm
-            JOIN menus_master mm ON wm.menu_id = mm.menu_id
-            WHERE wm.user_id = %s
-            ORDER BY mm.menu_name ASC
-        """, (user_id,))
-        user_menus = cur.fetchall()
+    <div class="editor-grid">
+      <div>
+        <div class="video-panel">
+          <div class="video-wrap" id="videoWrap">
+            <video id="videoEl" playsinline></video>
+            <div class="video-empty" id="videoEmpty">
+              <div>この教材にはまだ動画がありません</div>
+              <button class="btn btn-primary btn-sm" id="pickVideoBtn2">動画ファイルを選ぶ</button>
+            </div>
+            <div id="captionOverlay"></div>
+          </div>
+          <div class="file-row">
+            <input type="file" id="fileInput" accept="video/*">
+            <button class="btn btn-sm" id="pickVideoBtn">動画ファイルを選ぶ</button>
+            <span class="file-name" id="fileNameLabel">動画未選択</span>
+          </div>
+          <div class="footnote">動画そのものはブラウザに保存されません。次にこの教材を開くときは、同じ動画ファイルを選び直してください。字幕とクイズは自動保存されます。</div>
 
-        # 重量推移（条件付き実行）
-        progress_data = {"labels": [], "data": []}
-        if selected_menu_id:
-            cur.execute("""
-                SELECT training_date, MAX(weight) AS max_weight
-                FROM workout_memo
-                WHERE user_id = %s AND menu_id = %s
-                GROUP BY training_date
-                ORDER BY training_date ASC
-            """, (user_id, selected_menu_id))
-            prog_raw = cur.fetchall()
-            progress_data = {
-                "labels": [row["training_date"].strftime("%Y-%m-%d") for row in prog_raw],
-                "data": [float(row["max_weight"]) for row in prog_raw]
-            }
+          <div class="timeline-section">
+            <div class="timeline-head">
+              <h3>タイムライン（テロップ配置）</h3>
+              <span class="time-badge" id="curTimeLabel">00:00 / 00:00</span>
+            </div>
+            <div class="timeline-outer">
+              <div class="timeline" id="timeline">
+                <div class="timeline-track-label">クリックで再生位置を移動・ドラッグでテロップ調整</div>
+                <div class="playhead" id="playhead" style="left:0%"></div>
+              </div>
+              <div class="ticks" id="ticks"></div>
+            </div>
+            <div class="add-cap-row">
+              <button class="btn btn-teal btn-sm" id="addCapBtn">＋ 今の位置にテロップを追加</button>
+              <span class="time-badge" id="addAtLabel"></span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    # データ構造の構築
-    volume_data = {
-        "labels": [row["part_name"] for row in volume_raw],
-        "data": [float(row["total_volume"]) if row["total_volume"] else 0 for row in volume_raw]
+      <div class="side-panel">
+        <div class="tabbar">
+          <button class="tabbtn active" data-tab="cap">テロップ</button>
+          <button class="tabbtn" data-tab="quiz">クイズ</button>
+        </div>
+
+        <div class="tabpane active" id="tab-cap">
+          <div id="capEditorArea"></div>
+        </div>
+
+        <div class="tabpane" id="tab-quiz">
+          <div id="quizList"></div>
+          <button class="btn btn-teal btn-sm" id="addQuizBtn" style="width:100%; justify-content:center; margin-top:4px;">＋ 設問を追加</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PREVIEW SCREEN -->
+  <section class="screen" id="screen-preview">
+    <div class="preview-wrap">
+      <h2 class="serif" id="previewTitle" style="margin-top:0;"></h2>
+      <div class="preview-video-wrap">
+        <video id="previewVideo" playsinline controls></video>
+        <div id="previewCaptionOverlay"></div>
+      </div>
+      <div class="after-video-cta" id="rewatchRow" style="display:none;">
+        <button class="btn btn-sm" id="rewatchBtn">もう一度見る</button>
+      </div>
+
+      <div class="quiz-section" id="quizSection">
+        <h2 class="serif">理解度チェック</h2>
+        <p class="lead">視聴お疲れさまでした。内容を振り返りながら答えてください。</p>
+        <div id="quizRunner"></div>
+        <div style="display:flex; gap:10px; margin-top:6px;">
+          <button class="btn btn-primary" id="gradeBtn">採点する</button>
+          <button class="btn" id="retryQuizBtn" style="display:none;">もう一度挑戦する</button>
+        </div>
+        <div id="scoreArea" style="margin-top:18px;"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ===================== storage helpers ===================== */
+  async function idxGet(){
+    try{
+      const r = await window.storage.get('projects-index', false);
+      return r ? JSON.parse(r.value) : [];
+    }catch(e){ return []; }
+  }
+  async function idxSave(list){
+    try{ await window.storage.set('projects-index', JSON.stringify(list), false); }catch(e){}
+  }
+  async function projGet(id){
+    try{
+      const r = await window.storage.get('project:'+id, false);
+      return r ? JSON.parse(r.value) : null;
+    }catch(e){ return null; }
+  }
+  async function projSave(p){
+    try{ await window.storage.set('project:'+p.id, JSON.stringify(p), false); }catch(e){}
+    const list = await idxGet();
+    const meta = {id:p.id, title:p.title, updatedAt:Date.now(), captionCount:p.captions.length, quizCount:p.quiz.length};
+    const i = list.findIndex(x=>x.id===p.id);
+    if(i>=0) list[i]=meta; else list.unshift(meta);
+    await idxSave(list);
+  }
+  async function projDelete(id){
+    try{ await window.storage.delete('project:'+id, false); }catch(e){}
+    const list = await idxGet();
+    await idxSave(list.filter(x=>x.id!==id));
+  }
+
+  function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+  function fmtTime(s){
+    s = Math.max(0, s||0);
+    const m = Math.floor(s/60), sec = Math.floor(s%60);
+    return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+  }
+  function fmtDate(ts){
+    const d = new Date(ts);
+    return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  }
+  let toastTimer=null;
+  function toast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>t.classList.remove('show'), 1800);
+  }
+
+  function newProjectTemplate(){
+    return {id:uid(), title:'無題の教材', duration:0, captions:[], quiz:[], createdAt:Date.now()};
+  }
+
+  /* ===================== app state ===================== */
+  let project = null;
+  let isDirty = false;
+  let selectedCapId = null;
+  let videoUrl = null;
+  let currentTab = 'cap';
+
+  const screens = {
+    list: document.getElementById('screen-list'),
+    editor: document.getElementById('screen-editor'),
+    preview: document.getElementById('screen-preview'),
+  };
+  function showScreen(name){
+    Object.values(screens).forEach(s=>s.classList.remove('active'));
+    screens[name].classList.add('active');
+    renderHeaderActions(name);
+  }
+
+  const headerActions = document.getElementById('headerActions');
+  function renderHeaderActions(screenName){
+    headerActions.innerHTML = '';
+    if(screenName==='editor'){
+      const back = mkBtn('一覧へ戻る', ()=>{ goList(); }, 'btn btn-ghost btn-sm');
+      const prev = mkBtn('プレビュー', ()=>{ openPreview(); }, 'btn btn-sm');
+      const save = mkBtn('保存する', ()=>{ doSave(); }, 'btn btn-primary btn-sm');
+      headerActions.append(back, prev, save);
+    } else if(screenName==='preview'){
+      const back = mkBtn('編集へ戻る', ()=>{ showScreen('editor'); }, 'btn btn-ghost btn-sm');
+      headerActions.append(back);
     }
-    freq_data = {
-        "labels": [row["month"] for row in freq_raw],
-        "data": [row["active_days"] for row in freq_raw]
+  }
+  function mkBtn(label, onClick, cls){
+    const b = document.createElement('button');
+    b.className = cls || 'btn btn-sm';
+    b.textContent = label;
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
+  document.getElementById('brandHome').addEventListener('click', goList);
+
+  function markDirty(){ isDirty = true; document.getElementById('dirtyDot').classList.add('show'); }
+  function clearDirty(){ isDirty = false; document.getElementById('dirtyDot').classList.remove('show'); }
+
+  /* ===================== LIST screen ===================== */
+  async function goList(){
+    if(videoUrl){ URL.revokeObjectURL(videoUrl); videoUrl=null; }
+    project = null;
+    showScreen('list');
+    await renderList();
+  }
+  async function renderList(){
+    const grid = document.getElementById('projectGrid');
+    grid.innerHTML = '';
+    const list = await idxGet();
+    list.sort((a,b)=>b.updatedAt-a.updatedAt);
+
+    const newCard = document.createElement('div');
+    newCard.className = 'new-card';
+    newCard.innerHTML = '<div class="plus">＋</div><div>新しい教材を作る</div>';
+    newCard.addEventListener('click', async ()=>{
+      project = newProjectTemplate();
+      selectedCapId = null;
+      videoUrl = null;
+      openEditor();
+    });
+    grid.appendChild(newCard);
+
+    list.forEach(meta=>{
+      const card = document.createElement('div');
+      card.className = 'project-card';
+      const title = document.createElement('div');
+      title.className = 'title'; title.textContent = meta.title || '無題の教材';
+      const metaRow = document.createElement('div');
+      metaRow.className = 'meta';
+      metaRow.innerHTML = '<span>🎬 テロップ '+meta.captionCount+'</span><span>📝 クイズ '+meta.quizCount+'</span><span>🕓 '+fmtDate(meta.updatedAt)+'</span>';
+      const actions = document.createElement('div');
+      actions.className = 'row-actions';
+      const openBtn = mkBtn('開く', async (e)=>{ e.stopPropagation(); const p = await projGet(meta.id); if(p){ project=p; videoUrl=null; selectedCapId=null; openEditor(); } }, 'btn btn-sm');
+      const delBtn = mkBtn('削除', async (e)=>{ e.stopPropagation(); if(confirm('「'+(meta.title||'無題の教材')+'」を削除しますか？この操作は取り消せません。')){ await projDelete(meta.id); await renderList(); toast('削除しました'); } }, 'btn btn-sm btn-danger');
+      actions.append(openBtn, delBtn);
+      card.append(title, metaRow, actions);
+      card.addEventListener('click', ()=>openBtn.click());
+      grid.appendChild(card);
+    });
+
+    if(list.length===0){
+      const note = document.createElement('div');
+      note.className = 'empty-note';
+      note.style.gridColumn = '1/-1';
+      note.textContent = 'まだ教材がありません。「＋ 新しい教材を作る」から始めましょう。';
+      grid.appendChild(note);
     }
+  }
 
-    return render_template(
-        "analysis.html", 
-        volume_data=volume_data, 
-        freq_data=freq_data, 
-        user_menus=user_menus, 
-        selected_menu_id=selected_menu_id,
-        progress_data=progress_data
-    )
-</pre>
-        <br>
-        このコードを解説してください<br>
-        <br>
-        @appやwith,「"""」といった予約語はそれぞれどのような働きをしているのかにも触れて欲しいです
-    </div>
-    <div class="response"><strong>【回答】</strong><br>
-        提示されたコードは、Flaskフレームワークにおける/analysisエンドポイント（分析ダッシュボード画面）のビジネスロジックを定義しています。データベースからトレーニング記録を抽出し、フロントエンドでのグラフ描画用にデータを整形してテンプレートへ渡す役割を担っています。<br>
-        <br>
-        <strong>特有の構文・予約語の役割</strong><br>
-        <br>
-        PythonおよびFlask特有の記述について、システムの論理構造における役割を解説します。<br>
-        <br>
-        <strong>@app.route("/analysis", methods=["GET"])（デコレータ）</strong><br>
-        Flaskに対するルーティングの登録指示です。クライアントから/analysisというURLに対し、HTTPのGETメソッドでリクエストが到達した際、直下に定義されたanalysis()関数を実行するようシステムに紐付けています。<br>
-        <br>
-        <strong>@login_required（カスタムデコレータ）</strong><br>
-        リクエストが到達した際、analysis()関数本体を実行する前に、セッション情報に基づくユーザー認証（ログイン済みか否か）を強制的に評価するガード処理です。<br>
-        <br>
-        <strong>with（コンテキストマネージャ）</strong><br>
-        リソースの確保と解放を安全かつ自動的に行うための構文です。with get_db().cursor(dictionary=True) as cur:と記述することで、ブロック内の処理が終了した際（または例外が発生した際）に、データベースのカーソル（cur）のクローズ処理が確実に実行され、メモリリークやリソース枯渇を防止します。<br>
-        <br>
-        <strong>"""（トリプルクォート）</strong><br>
-        Pythonにおける複数行の文字列リテラルを定義する構文です。改行を含む長い文字列をそのまま定義できるため、コード内でSQLクエリ等の構造化された文字列を記述する際に利用されます。<br>
-        <br>
-        <strong>処理フローの論理構造</strong><br>
-        <br>
-        コードの処理は大きく4つのフェーズに分割されます。<br>
-        <br>
-        <strong>1. リクエストの受付とパラメータ取得</strong><br>
-<pre>
-user_id = session["user_id"]
-selected_menu_id = request.args.get("menu_id", type=int)
-</pre>
-        サーバー側で管理しているセッションから、リクエスト元のユーザーIDを取得します。同時に、URLのクエリパラメータ（例：/analysis?menu_id=5）から、特定の種目が指定されている場合はそのIDを取得します。<br>
-        <br>
-        <strong>2. データベース操作（データの抽出）</strong><br>
-        withブロック内で、要求される分析要件に応じた4つのSQLクエリを実行します。<br>
-        <br>
-        ・部位別ボリューム: GROUP BY句を用いて、部位（Chest, Back等）ごとに、重量×回数の総和（総負荷量）を算出します。<br>
-        ・トレーニング頻度推移: DATE_FORMAT関数で日付を「年-月」に変換し、月ごとにトレーニングを行った一意の日数（アクティブ日数）をカウントします。<br>
-        ・種目マスタ取得: 当該ユーザーが過去に実行したことのある種目の一覧を重複なく（DISTINCT）取得します。画面上の絞り込み用プルダウン生成に利用されます。<br>
-        ・重量推移（条件付き）: 変数selected_menu_idが存在する場合のみ実行されます。指定された種目について、日ごとの最大重量を取得します。<br>
-        <br>
-        <strong>3. データの整形</strong><br>
-<pre>
-volume_data = {
-    "labels": [row["part_name"] for row in volume_raw],
-    "data": [float(row["total_volume"]) if row["total_volume"] else 0 for row in volume_raw]
-}
-</pre>
-        データベースから取得した二次元のレコードセット（辞書型のリスト）を、フロントエンドのグラフ描画ライブラリ（Chart.js等）が解釈しやすいデータ構造へ変換します。リスト内包表記を利用し、X軸の要素（labels）とY軸の数値（data）のリストに分離しています。<br>
-        <br>
-        <strong>4. 画面への描画（レンダリング）</strong><br>
-<pre>
-return render_template("analysis.html", ...)
-</pre>
-        最終的に、整形した各種データ群をanalysis.htmlテンプレートに引き渡します。これにより、サーバーサイドでの処理結果がHTML内の変数に埋め込まれ、クライアントのブラウザへ返却されます。
-    </div>
-</details>
+  /* ===================== EDITOR screen ===================== */
+  const videoEl = document.getElementById('videoEl');
+  const videoEmpty = document.getElementById('videoEmpty');
+  const fileInput = document.getElementById('fileInput');
+  const captionOverlay = document.getElementById('captionOverlay');
+  const timelineEl = document.getElementById('timeline');
+  const playheadEl = document.getElementById('playhead');
+  const titleInput = document.getElementById('titleInput');
 
-<!-- ログ16 -->
-<details>
-    <summary>ログ16：部位別トレーニング頻度の抽出状況確認と実装案</summary>
-    <div class="prompt">
-        <strong>【プロンプト】</strong><br>
-        [質問]<br>
-        ・部位別データ<br>
-        ・部位別頻度<br>
-        がデータベースから抽出されているという解釈であっているか<br>
-        <br>
-        総ボリュームではなく、各部位のトレーニング頻度がわかるような棒グラフを作成することが可能か（ゲーム「モンスターハンターダブルクロスの使用武器頻度のイメージ」）
-    </div>
-    <div class="response"><strong>【回答】</strong><br>
-        現在のコードに対する解釈の事実確認と、追加要件に対する技術的な評価を以下に示す。<br>
-        <br>
-        <strong>1. 現状のコードに対する解釈の訂正</strong><br>
-        <br>
-        現在の main.py の実装に対する解釈は一部誤っている。現状のデータベース抽出処理の事実は以下の通りである。<br>
-        <br>
-        部位別データ（総負荷量）: 抽出されている。部位ごとに SUM(weight * reps) を計算し、円グラフ等のデータとして生成している。<br>
-        部位別頻度: 抽出されていない。 現在取得しているのは「月別の全体のトレーニング日数（アクティブな日）」であり、部位ごとの分類は行われていない。<br>
-        <br>
-        <strong>2. 要望の実現可能性と要件定義</strong><br>
-        <br>
-        提示された画像のような、「部位ごとのトレーニング実施回数を比較する棒グラフ」を作成することは完全に可能である。<br>
-        <br>
-        これをシステムとして実装するには、バックエンド（main.py）において「特定の部位をトレーニングした日数」を集計する新たなSQLクエリを定義し、フロントエンド（HTML側のグラフ描画ライブラリ）に渡す必要がある。<br>
-        <br>
-        <strong>3. 具体的な改善策（バックエンドの実装）</strong><br>
-        <br>
-        現在の analysis 関数内に、以下のSQLクエリとデータ整形処理を追加（または不要であれば総ボリュームの処理と置換）することで、目的のデータを抽出できる。<br>
-        <br>
-<pre>
-# 部位別のトレーニング頻度（アクティブ日数ベース）
-cur.execute("""
-    SELECT pm.part_name, COUNT(DISTINCT wm.training_date) AS part_freq
-    FROM workout_memo wm
-    JOIN menus_master mm ON wm.menu_id = mm.menu_id
-    JOIN parts_master pm ON mm.part_id = pm.part_id
-    WHERE wm.user_id = %s
-    GROUP BY pm.part_id, pm.part_name
-    ORDER BY pm.part_id ASC
-""", (user_id,))
-part_freq_raw = cur.fetchall()
+  function openEditor(){
+    titleInput.value = project.title;
+    videoEl.removeAttribute('src');
+    videoEmpty.style.display = 'flex';
+    videoEl.style.display = 'none';
+    document.getElementById('fileNameLabel').textContent = project.videoFileName ? project.videoFileName+'（再選択してください）' : '動画未選択';
+    clearDirty();
+    selectedCapId = null;
+    switchTab('cap');
+    renderTimeline();
+    renderCapEditor();
+    renderQuizList();
+    updateTimeLabel();
+    showScreen('editor');
+  }
 
-# フロントエンドの棒グラフ用データに整形
-part_freq_data = {
-    "labels": [row["part_name"] for row in part_freq_raw],
-    "data": [row["part_freq"] for row in part_freq_raw]
-}
-</pre>
-        <br>
-        <strong>論理構造のポイント:</strong><br>
-        <br>
-        単なる COUNT(*) を使用した場合、「1日のうちに胸の種目を3種類行った」際に頻度が「3」として計上されてしまう。提示した COUNT(DISTINCT wm.training_date) を用いることで、「その部位を鍛えた日」を1カウントとして正確に集計できる。<br>
-        <br>
-        この part_freq_data をテンプレートへ引き渡し、フロントエンドのグラフ描画設定で type: "bar"（棒グラフ）を指定すれば、要求されたUI要件を満たすことが可能である。
-    </div>
-</details>
+  titleInput.addEventListener('input', ()=>{ project.title = titleInput.value || '無題の教材'; markDirty(); });
 
-<!-- ログ17 -->
-<details>
-    <summary>ログ17：analysis.htmlの整形（部位別頻度棒グラフの実装）</summary>
-    <div class="prompt">
-        <strong>【プロンプト】</strong><br>
-        [質問]<br>
-        templatesのanalysis.htmlを整形<br>
-        <br>
-        ・部位別総ボリュームの円グラフの削除<br>
-        ・種目別頻度の縦棒グラフの追加<br>
-        <br>
-        ・以下現在のanalysis<br>
-        <br>
-<pre>
-&lt;!DOCTYPE html&gt;
-&lt;html lang="ja"&gt;
-&lt;head&gt;
-    &lt;meta charset="UTF-8"&gt;
-    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
-    &lt;title&gt;Analysis - Workout Log&lt;/title&gt;
-    &lt;script src="https://cdn.jsdelivr.net/npm/chart.js"&gt;&lt;/script&gt;
-    &lt;style&gt;
-        body { font-family: sans-serif; margin: 0; padding: 20px; background: #f0f2f5; color: #333; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .back-link { text-decoration: none; color: #007bff; font-weight: bold; }
-        
-        .dashboard {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        .chart-card { 
-            background: white; 
-            padding: 20px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
-        }
-        h2 { text-align: center; font-size: 1.2rem; margin-top: 0; margin-bottom: 15px; }
-        
-        /* 選択フォームのスタイル */
-        .select-form { text-align: center; margin-bottom: 15px; }
-        select { padding: 8px; border-radius: 5px; border: 1px solid #ddd; font-size: 1rem; }
-    &lt;/style&gt;
-&lt;/head&gt;
-&lt;body&gt;
-    &lt;div class="header"&gt;
-        &lt;a href="/" class="back-link"&gt;← ホームに戻る&lt;/a&gt;
-    &lt;/div&gt;
+  function pickVideo(){ fileInput.click(); }
+  document.getElementById('pickVideoBtn').addEventListener('click', pickVideo);
+  document.getElementById('pickVideoBtn2').addEventListener('click', pickVideo);
+  fileInput.addEventListener('change', ()=>{
+    const f = fileInput.files[0];
+    if(!f) return;
+    if(videoUrl) URL.revokeObjectURL(videoUrl);
+    videoUrl = URL.createObjectURL(f);
+    videoEl.src = videoUrl;
+    videoEl.style.display = 'block';
+    videoEmpty.style.display = 'none';
+    project.videoFileName = f.name;
+    document.getElementById('fileNameLabel').textContent = f.name;
+    markDirty();
+  });
+  videoEl.addEventListener('loadedmetadata', ()=>{
+    project.duration = videoEl.duration || project.duration || 0;
+    renderTimeline();
+    updateTimeLabel();
+  });
+  videoEl.addEventListener('timeupdate', ()=>{
+    updatePlayhead();
+    updateTimeLabel();
+    renderCaptionOverlay(videoEl.currentTime, captionOverlay);
+  });
 
-    &lt;script id="data-volume" type="application/json"&gt;{{ volume_data | tojson }}&lt;/script&gt;
-    &lt;script id="data-freq" type="application/json"&gt;{{ freq_data | tojson }}&lt;/script&gt;
-    &lt;script id="data-progress" type="application/json"&gt;{{ progress_data | tojson }}&lt;/script&gt;
+  function updateTimeLabel(){
+    document.getElementById('curTimeLabel').textContent = fmtTime(videoEl.currentTime||0)+' / '+fmtTime(project.duration||0);
+    document.getElementById('addAtLabel').textContent = '追加位置: '+fmtTime(videoEl.currentTime||0);
+  }
+  function updatePlayhead(){
+    const d = project.duration||0;
+    const pct = d>0 ? (videoEl.currentTime/d)*100 : 0;
+    playheadEl.style.left = pct+'%';
+  }
 
-    &lt;div class="dashboard"&gt;
-        &lt;div class="chart-card"&gt;
-            &lt;h2&gt;部位別 総負荷量バランス&lt;/h2&gt;
-            &lt;canvas id="volumeChart"&gt;&lt;/canvas&gt;
-        &lt;/div&gt;
+  function renderCaptionOverlay(t, container){
+    container.innerHTML = '';
+    const active = project.captions.filter(c=>t>=c.start && t<c.end);
+    ['top','center','bottom'].forEach(pos=>{
+      const items = active.filter(c=>(c.position||'bottom')===pos);
+      if(items.length===0) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'caption-overlay cap-'+pos;
+      items.forEach(c=>{
+        const line = document.createElement('div');
+        line.className = 'cap-line';
+        line.textContent = c.text || '';
+        wrap.appendChild(line);
+      });
+      container.appendChild(wrap);
+    });
+  }
 
-        &lt;div class="chart-card"&gt;
-            &lt;h2&gt;月別 トレーニングアクティブ日数&lt;/h2&gt;
-            &lt;canvas id="freqChart"&gt;&lt;/canvas&gt;
-        &lt;/div&gt;
+  /* ---- Timeline ---- */
+  function renderTicks(){
+    const ticks = document.getElementById('ticks');
+    ticks.innerHTML = '';
+    const d = project.duration||0;
+    for(let i=0;i<=4;i++){
+      const s = document.createElement('span');
+      s.textContent = fmtTime(d*i/4);
+      ticks.appendChild(s);
+    }
+  }
 
-        &lt;div class="chart-card"&gt;
-            &lt;h2&gt;種目別 最大重量の推移&lt;/h2&gt;
-            &lt;div class="select-form"&gt;
-                &lt;form method="GET" action="/analysis"&gt;
-                    &lt;select name="menu_id" onchange="this.form.submit()"&gt;
-                        &lt;option value=""&gt;種目を選択して推移を表示&lt;/option&gt;
-                        {% for menu in user_menus %}
-                        &lt;option value="{{ menu["menu_id"] }}" {% if menu["menu_id"] == selected_menu_id %}selected{% endif %}&gt;
-                            {{ menu["menu_name"] }}
-                        &lt;/option&gt;
-                        {% endfor %}
-                    &lt;/select&gt;
-                &lt;/form&gt;
-            &lt;/div&gt;
-            &lt;canvas id="progressChart"&gt;&lt;/canvas&gt;
-        &lt;/div&gt;
-    &lt;/div&gt;
+  function renderTimeline(){
+    // clear existing blocks (keep playhead)
+    Array.from(timelineEl.querySelectorAll('.caption-block')).forEach(b=>b.remove());
+    const d = project.duration||0;
+    renderTicks();
+    if(d<=0){
+      return;
+    }
+    project.captions.forEach(c=>{
+      const block = document.createElement('div');
+      block.className = 'caption-block'+(c.id===selectedCapId?' selected':'');
+      block.dataset.id = c.id;
+      const leftPct = (c.start/d)*100;
+      const widthPct = Math.max((c.end-c.start)/d*100, 1);
+      block.style.left = leftPct+'%';
+      block.style.width = widthPct+'%';
+      const lbl = document.createElement('div');
+      lbl.className = 'lbl';
+      lbl.textContent = c.text || '(空のテロップ)';
+      const hL = document.createElement('div'); hL.className='resize-handle left';
+      const hR = document.createElement('div'); hR.className='resize-handle right';
+      block.append(hL, lbl, hR);
+      block.addEventListener('mousedown', (e)=>startDrag(e, c.id, 'move'));
+      hL.addEventListener('mousedown', (e)=>{ e.stopPropagation(); startDrag(e, c.id, 'left'); });
+      hR.addEventListener('mousedown', (e)=>{ e.stopPropagation(); startDrag(e, c.id, 'right'); });
+      block.addEventListener('click', (e)=>{ e.stopPropagation(); selectCap(c.id); });
+      timelineEl.appendChild(block);
+    });
+    updatePlayhead();
+  }
 
-    &lt;script&gt;
-        // Data Islandからデータを取得しパース（解析）
-        const volumeData = JSON.parse(document.getElementById("data-volume").textContent);
-        const freqData = JSON.parse(document.getElementById("data-freq").textContent);
-        const progressData = JSON.parse(document.getElementById("data-progress").textContent);
+  timelineEl.addEventListener('click', (e)=>{
+    if(e.target !== timelineEl && !e.target.classList.contains('timeline-track-label')) return;
+    const d = project.duration||0;
+    if(d<=0) return;
+    const rect = timelineEl.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (e.clientX-rect.left)/rect.width));
+    videoEl.currentTime = ratio*d;
+  });
 
-        // --- 1. 円グラフ（部位別割合） ---
-        if (volumeData.labels && volumeData.labels.length &gt; 0) {
-            new Chart(document.getElementById("volumeChart").getContext("2d"), {
-                type: "pie",
-                data: {
-                    labels: volumeData.labels, // バックエンドで整形済みの配列をそのまま使用
-                    datasets: [{
-                        data: volumeData.data,     // バックエンドで整形済みの配列をそのまま使用
-                        backgroundColor: ["#ff6384", "#36a2eb", "#cc65fe", "#ffce56", "#4bc0c0", "#9966ff"]
-                    }]
-                },
-                options: { responsive: true }
-            });
-        } else {
-            document.getElementById("volumeChart").insertAdjacentHTML("afterend", "&lt;p style="text-align:center;"&gt;データがありません。&lt;/p&gt;");
-        }
+  let dragState = null;
+  function startDrag(e, capId, mode){
+    e.preventDefault();
+    const d = project.duration||0;
+    if(d<=0) return;
+    const cap = project.captions.find(c=>c.id===capId);
+    if(!cap) return;
+    selectCap(capId);
+    dragState = {
+      capId, mode, startX:e.clientX,
+      origStart:cap.start, origEnd:cap.end,
+      rectWidth: timelineEl.getBoundingClientRect().width,
+      duration: d
+    };
+    document.addEventListener('mousemove', onDrag);
+    document.addEventListener('mouseup', endDrag);
+  }
+  function onDrag(e){
+    if(!dragState) return;
+    const cap = project.captions.find(c=>c.id===dragState.capId);
+    if(!cap) return;
+    const deltaTime = ((e.clientX - dragState.startX)/dragState.rectWidth) * dragState.duration;
+    const minGap = 0.3;
+    if(dragState.mode==='move'){
+      let ns = dragState.origStart + deltaTime;
+      let ne = dragState.origEnd + deltaTime;
+      const len = dragState.origEnd - dragState.origStart;
+      ns = Math.max(0, Math.min(dragState.duration-len, ns));
+      ne = ns + len;
+      cap.start = ns; cap.end = ne;
+    } else if(dragState.mode==='left'){
+      let ns = Math.max(0, Math.min(dragState.origEnd-minGap, dragState.origStart+deltaTime));
+      cap.start = ns;
+    } else if(dragState.mode==='right'){
+      let ne = Math.min(dragState.duration, Math.max(dragState.origStart+minGap, dragState.origEnd+deltaTime));
+      cap.end = ne;
+    }
+    renderTimeline();
+    if(selectedCapId===cap.id) renderCapEditor();
+  }
+  function endDrag(){
+    if(dragState){ markDirty(); }
+    dragState = null;
+    document.removeEventListener('mousemove', onDrag);
+    document.removeEventListener('mouseup', endDrag);
+  }
 
-        // --- 2. 棒グラフ（頻度推移） ---
-        if (freqData.labels && freqData.labels.length &gt; 0) {
-            new Chart(document.getElementById("freqChart").getContext("2d"), {
-                type: "bar",
-                data: {
-                    labels: freqData.labels,
-                    datasets: [{
-                        label: "トレーニング日数",
-                        data: freqData.data,
-                        backgroundColor: "#36a2eb"
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
-                }
-            });
-        }
+  function selectCap(id){
+    selectedCapId = id;
+    renderTimeline();
+    renderCapEditor();
+    switchTab('cap');
+  }
 
-        // --- 3. 折れ線グラフ（重量推移） ---
-        if (progressData.labels && progressData.labels.length &gt; 0) {
-            new Chart(document.getElementById("progressChart").getContext("2d"), {
-                type: "line",
-                data: {
-                    labels: progressData.labels,
-                    datasets: [{
-                        label: "最大重量 (kg)",
-                        data: progressData.data,
-                        borderColor: "#ff6384",
-                        backgroundColor: "rgba(255, 99, 132, 0.2)",
-                        tension: 0.1, // 線の丸み
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: { y: { beginAtZero: false } }
-                }
-            });
-        }
-    &lt;/script&gt;
-&lt;/body&gt;
-&lt;/html&gt;
-</pre>
-    </div>
-    <div class="response"><strong>【回答】</strong><br>
-        仕様と要件の不一致に関する指摘<br>
-        <br>
-        提示された要件に「種目別頻度の縦棒グラフの追加」と記載されているが、事前のコンテキスト（「モンスターハンターの使用武器頻度」のメタファー）およびUI設計の論理的観点から、これは「部位別（Part）の頻度」を意図したものであると判断し、実装を行う。<br>
-        <br>
-        理由:<br>
-        <br>
-        「種目（Menu）」単位（ベンチプレス、スクワット等）で頻度グラフを作成した場合、X軸の項目数が膨大になり、視認性が著しく低下する。前段で策定したバックエンド側の変数 part_freq_data を受け取り、大分類である「部位別」の棒グラフとして描画することが、システム設計として適切である。もし真に「種目別」の集計が必要な場合は、バックエンドのSQL設計からやり直す必要がある。<br>
-        <br>
-        フロントエンド（HTML）修正案<br>
-        <br>
-        上記の仕様に基づき、円グラフのデータバインディングを削除し、部位別頻度の縦棒グラフ（partFreqChart）を組み込んだ analysis.html を提示する。視認性向上のため、棒グラフの各要素には多色配列（配列色）を割り当てている。<br>
-        <br>
-<pre>
-&lt;!DOCTYPE html&gt;&lt;html lang="ja"&gt;&lt;head&gt;
-    &lt;meta charset="UTF-8"&gt;
-    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
-    &lt;title&gt;Analysis - Workout Log&lt;/title&gt;
-    &lt;script src="https://cdn.jsdelivr.net/npm/chart.js"&gt;&lt;/script&gt;
-    &lt;style&gt;
-        body { font-family: sans-serif; margin: 0; padding: 20px; background: #f0f2f5; color: #333; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .back-link { text-decoration: none; color: #007bff; font-weight: bold; }
-        
-        .dashboard {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        .chart-card { 
-            background: white; 
-            padding: 20px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
-        }
-        h2 { text-align: center; font-size: 1.2rem; margin-top: 0; margin-bottom: 15px; }
-        
-        /* 選択フォームのスタイル */
-        .select-form { text-align: center; margin-bottom: 15px; }
-        select { padding: 8px; border-radius: 5px; border: 1px solid #ddd; font-size: 1rem; }
-    &lt;/style&gt;&lt;/head&gt;&lt;body&gt;
-    &lt;div class="header"&gt;
-        &lt;a href="/" class="back-link"&gt;← ホームに戻る&lt;/a&gt;
-    &lt;/div&gt;
+  document.getElementById('addCapBtn').addEventListener('click', ()=>{
+    const d = project.duration||0;
+    if(d<=0){ toast('先に動画を選択してください'); return; }
+    const start = videoEl.currentTime||0;
+    const end = Math.min(d, start+3);
+    const cap = {id:uid(), start, end:(end>start?end:Math.min(d,start+0.5)), text:'', position:'bottom'};
+    project.captions.push(cap);
+    project.captions.sort((a,b)=>a.start-b.start);
+    selectedCapId = cap.id;
+    markDirty();
+    renderTimeline();
+    renderCapEditor();
+  });
 
-    &lt;!-- バックエンドからのデータ受け取り --&gt;
-    &lt;script id="data-part-freq" type="application/json"&gt;{{ part_freq_data | tojson }}&lt;/script&gt;
-    &lt;script id="data-freq" type="application/json"&gt;{{ freq_data | tojson }}&lt;/script&gt;
-    &lt;script id="data-progress" type="application/json"&gt;{{ progress_data | tojson }}&lt;/script&gt;
+  function renderCapEditor(){
+    const area = document.getElementById('capEditorArea');
+    area.innerHTML = '';
+    const cap = project.captions.find(c=>c.id===selectedCapId);
+    if(!cap){
+      const empty = document.createElement('div');
+      empty.className = 'empty-side';
+      empty.textContent = project.captions.length
+        ? 'タイムライン上のテロップをクリックすると、ここで編集できます。'
+        : '「＋ 今の位置にテロップを追加」からテロップを作成してください。';
+      area.appendChild(empty);
+      return;
+    }
+    const g1 = document.createElement('div'); g1.className='field-group';
+    g1.innerHTML = '<label class="field-label">テロップ本文</label>';
+    const ta = document.createElement('textarea');
+    ta.className = 'field-textarea'; ta.rows = 3; ta.value = cap.text;
+    ta.addEventListener('input', ()=>{ cap.text = ta.value; markDirty(); renderTimeline(); });
+    g1.appendChild(ta);
 
-    &lt;div class="dashboard"&gt;
-        &lt;!-- 1. 部位別トレーニング頻度（棒グラフ） --&gt;
-        &lt;div class="chart-card"&gt;
-            &lt;h2&gt;部位別 トレーニング頻度&lt;/h2&gt;
-            &lt;canvas id="partFreqChart"&gt;&lt;/canvas&gt;
-        &lt;/div&gt;
+    const g2 = document.createElement('div'); g2.className='field-group time-fields';
+    const sWrap = document.createElement('div');
+    sWrap.innerHTML = '<label class="field-label">開始 (秒)</label>';
+    const sInput = document.createElement('input'); sInput.type='number'; sInput.step='0.1'; sInput.className='field-input';
+    sInput.value = cap.start.toFixed(1);
+    sInput.addEventListener('change', ()=>{
+      let v = parseFloat(sInput.value); if(isNaN(v)) v = cap.start;
+      v = Math.max(0, Math.min(cap.end-0.2, v));
+      cap.start = v; markDirty(); renderTimeline(); renderCapEditor();
+    });
+    sWrap.appendChild(sInput);
+    const eWrap = document.createElement('div');
+    eWrap.innerHTML = '<label class="field-label">終了 (秒)</label>';
+    const eInput = document.createElement('input'); eInput.type='number'; eInput.step='0.1'; eInput.className='field-input';
+    eInput.value = cap.end.toFixed(1);
+    eInput.addEventListener('change', ()=>{
+      let v = parseFloat(eInput.value); if(isNaN(v)) v = cap.end;
+      v = Math.min(project.duration||v, Math.max(cap.start+0.2, v));
+      cap.end = v; markDirty(); renderTimeline(); renderCapEditor();
+    });
+    eWrap.appendChild(eInput);
+    g2.append(sWrap, eWrap);
 
-        &lt;!-- 2. 月別トレーニングアクティブ日数 --&gt;
-        &lt;div class="chart-card"&gt;
-            &lt;h2&gt;月別 トレーニングアクティブ日数&lt;/h2&gt;
-            &lt;canvas id="freqChart"&gt;&lt;/canvas&gt;
-        &lt;/div&gt;
+    const g3 = document.createElement('div'); g3.className='field-group';
+    g3.innerHTML = '<label class="field-label">表示位置</label>';
+    const posWrap = document.createElement('div'); posWrap.className='position-select';
+    [['top','上'],['center','中央'],['bottom','下']].forEach(([val,label])=>{
+      const b = document.createElement('button');
+      b.textContent = label; b.type='button';
+      if((cap.position||'bottom')===val) b.classList.add('active');
+      b.addEventListener('click', ()=>{ cap.position = val; markDirty(); renderCapEditor(); });
+      posWrap.appendChild(b);
+    });
+    g3.appendChild(posWrap);
 
-        &lt;!-- 3. 種目別最大重量の推移 --&gt;
-        &lt;div class="chart-card"&gt;
-            &lt;h2&gt;種目別 最大重量の推移&lt;/h2&gt;
-            &lt;div class="select-form"&gt;
-                &lt;form method="GET" action="/analysis"&gt;
-                    &lt;select name="menu_id" onchange="this.form.submit()"&gt;
-                        &lt;option value=""&gt;種目を選択して推移を表示&lt;/option&gt;
-                        {% for menu in user_menus %}
-                        &lt;option value="{{ menu["menu_id"] }}" {% if menu["menu_id"] == selected_menu_id %}selected{% endif %}&gt;
-                            {{ menu["menu_name"] }}
-                        &lt;/option&gt;
-                        {% endfor %}
-                    &lt;/select&gt;
-                &lt;/form&gt;
-            &lt;/div&gt;
-            &lt;canvas id="progressChart"&gt;&lt;/canvas&gt;
-        &lt;/div&gt;
-    &lt;/div&gt;
+    const seekBtn = mkBtn('この位置にシーク', ()=>{ videoEl.currentTime = cap.start; }, 'btn btn-sm');
+    const delBtn = mkBtn('このテロップを削除', ()=>{
+      project.captions = project.captions.filter(c=>c.id!==cap.id);
+      selectedCapId = null; markDirty(); renderTimeline(); renderCapEditor();
+    }, 'btn btn-sm btn-danger');
+    const btnRow = document.createElement('div');
+    btnRow.style.display='flex'; btnRow.style.gap='8px'; btnRow.style.marginTop='6px';
+    btnRow.append(seekBtn, delBtn);
 
-    &lt;script&gt;
-        // データのパース
-        const partFreqData = JSON.parse(document.getElementById("data-part-freq").textContent);
-        const freqData = JSON.parse(document.getElementById("data-freq").textContent);
-        const progressData = JSON.parse(document.getElementById("data-progress").textContent);
+    area.append(g1, g2, g3, btnRow);
+  }
 
-        // --- 1. 棒グラフ（部位別頻度） ---
-        if (partFreqData.labels && partFreqData.labels.length &gt; 0) {
-            new Chart(document.getElementById("partFreqChart").getContext("2d"), {
-                type: "bar",
-                data: {
-                    labels: partFreqData.labels,
-                    datasets: [{
-                        label: "実施日数",
-                        data: partFreqData.data,
-                        backgroundColor: [
-                            "#ff6384", "#36a2eb", "#ffce56", "#4bc0c0", "#9966ff", "#ff9f40"
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: { 
-                        y: { 
-                            beginAtZero: true, 
-                            ticks: { stepSize: 1 } 
-                        } 
-                    },
-                    plugins: {
-                        legend: { display: false } // 色で部位を識別するため凡例を非表示化
-                    }
-                }
-            });
-        } else {
-            document.getElementById("partFreqChart").insertAdjacentHTML("afterend", "&lt;p style="text-align:center;"&gt;データがありません。&lt;/p&gt;");
-        }
+  /* ---- Quiz tab ---- */
+  document.querySelectorAll('.tabbtn').forEach(btn=>{
+    btn.addEventListener('click', ()=>switchTab(btn.dataset.tab));
+  });
+  function switchTab(name){
+    currentTab = name;
+    document.querySelectorAll('.tabbtn').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+    document.getElementById('tab-cap').classList.toggle('active', name==='cap');
+    document.getElementById('tab-quiz').classList.toggle('active', name==='quiz');
+  }
 
-        // --- 2. 棒グラフ（月別アクティブ日数推移） ---
-        if (freqData.labels && freqData.labels.length &gt; 0) {
-            new Chart(document.getElementById("freqChart").getContext("2d"), {
-                type: "bar",
-                data: {
-                    labels: freqData.labels,
-                    datasets: [{
-                        label: "トレーニング日数",
-                        data: freqData.data,
-                        backgroundColor: "#36a2eb"
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: { 
-                        y: { 
-                            beginAtZero: true, 
-                            ticks: { stepSize: 1 } 
-                        } 
-                    }
-                }
-            });
-        }
+  document.getElementById('addQuizBtn').addEventListener('click', ()=>{
+    project.quiz.push({id:uid(), question:'', choices:['','','',''], correct:0, explanation:''});
+    markDirty();
+    renderQuizList();
+  });
 
-        // --- 3. 折れ線グラフ（重量推移） ---
-        if (progressData.labels && progressData.labels.length &gt; 0) {
-            new Chart(document.getElementById("progressChart").getContext("2d"), {
-                type: "line",
-                data: {
-                    labels: progressData.labels,
-                    datasets: [{
-                        label: "最大重量 (kg)",
-                        data: progressData.data,
-                        borderColor: "#ff6384",
-                        backgroundColor: "rgba(255, 99, 132, 0.2)",
-                        tension: 0.1,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: { y: { beginAtZero: false } }
-                }
-            });
-        }
-    &lt;/script&gt;&lt;/body&gt;&lt;/html&gt;
-</pre>
-        <br>
-        上記を適用する際、バックエンド側（main.py）の render_template における変数引き渡しが part_freq_data=part_freq_data となっていることを確実に検証すること。データの不整合はシステムの致命的なエラーに直結する。
-    </div>
-</details>
+  function renderQuizList(){
+    const list = document.getElementById('quizList');
+    list.innerHTML = '';
+    if(project.quiz.length===0){
+      const empty = document.createElement('div');
+      empty.className = 'empty-side';
+      empty.textContent = '「＋ 設問を追加」から視聴後クイズを作成してください。';
+      list.appendChild(empty);
+      return;
+    }
+    project.quiz.forEach((q, idx)=>{
+      const card = document.createElement('div');
+      card.className = 'quiz-card';
 
-<!-- ログ18 -->
-<details>
-    <summary>ログ18：アクセス不可事象の要因推測</summary>
-    <div class="prompt">
-        <strong>【プロンプト】</strong><br>
-        以上の項目を編集してflaskをリスタート、IPアドレスをブラウザで入力して変更内容を確認しようとしたらアクセスできなくなった<br>
-        <br>
-        この要因を推測
-    </div>
-    <div class="response"><strong>【回答】</strong><br>
-        発生している「アクセス不可」の事象について、現在のシステム変更履歴から論理的に推測される要因と、その検証手順を提示する。<br>
-        <br>
-        インフラ構築およびシステム運用において、「アクセスできない」という結果のみで推測による場当たり的な修正を行うことはリスクを拡大させる。以下の仮説に基づき、レイヤーごとに事実確認を実行すること。<br>
-        <br>
-        1. アプリケーションの実行ポート変更による疎通不全（可能性：高）<br>
-        <br>
-        不適切な点（要因）：<br>
-        先に提示した main.py のリファクタリング案において、末尾の起動設定が port=int(os.environ.get("PORT", 5000)) と定義されている。変更前のコード（port=80）の仕様を前提として、ブラウザから http://&lt;IPアドレス&gt;（デフォルトでポート80番）へリクエストを送信している場合、ポートの不一致により通信は拒否される。コードの変更がネットワーク設計に与える影響を把握しきれていない。<br>
-        具体的な改善・検証策：<br>
-        ブラウザのURL末尾にポート番号を指定し、http://&lt;IPアドレス&gt;:5000 でアクセスを試行する。<br>
-        要件としてポート80での稼働が必須である場合は、main.py の末尾を port=80 に修正した上で、再度コンテナを再起動（docker restart flask-service）する。<br>
-        2. コード編集ミスに伴うコンテナの異常終了（クラッシュ）<br>
-        <br>
-        不適切な点（要因）：<br>
-        main.py への変数追加（part_freq_data の定義等）や analysis.html の編集過程で、Pythonの構文エラー（インデントの不正、変数の未定義、括弧の閉じ忘れ）が発生している。起動直後にシステムがクラッシュし、コンテナ自体がダウンしている状態。<br>
-        具体的な改善・検証策：<br>
-        ターミナル上でコンテナの稼働状態とエラー出力を直接確認し、ブラックボックス化を排除する。<br>
-        docker ps を実行し、flask-service のステータスが Up か Exited（停止）かを確認する。<br>
-        Exited の場合、直ちに docker logs --tail 50 flask-service を実行し、最後に出力されているPythonのTraceback（エラーのスタックトレース）から、エラーが発生したファイル名と行数を特定する。<br>
-        3. セキュリティグループ（L4ファイアウォール）の許可設定漏れ<br>
-        <br>
-        不適切な点（要因）：<br>
-        AWSコンソール上で設定した「マイIP」の許可ルールが、現在の通信要件と合致していない。上記「要因1」に関連し、アプリケーションがポート5000で起動しているにもかかわらず、セキュリティグループのインバウンドルールでポート80のみを許可している場合、ネットワーク境界でパケットが破棄される。<br>
-        具体的な改善・検証策：<br>
-        AWSコンソールのセキュリティグループ設定画面を開き、インバウンドルールに「ポート5000（または現在稼働させているポート）」かつ「マイIP」の許可設定が正しく登録されているか、設計と実態の整合性を確認する。<br>
-        まずは docker logs --tail 20 flask-service を実行し、アプリケーションが正常に起動し待機状態にあるか、あるいはエラーを吐いて停止しているか、事実ベースでの切り分けを行うこと。
-    </div>
-</details>
+      const top = document.createElement('div'); top.className='qtop';
+      const num = document.createElement('div'); num.className='qnum'; num.textContent = '設問 '+(idx+1);
+      const del = mkBtn('削除', ()=>{ project.quiz = project.quiz.filter(x=>x.id!==q.id); markDirty(); renderQuizList(); }, 'btn btn-sm btn-danger');
+      top.append(num, del);
 
-<!-- ログ19 -->
-<details>
-    <summary>ログ19：コンテナエラーログの解析と要因特定</summary>
-    <div class="prompt">
-        <strong>【プロンプト】</strong><br>
-<pre>
-WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
- * Running on all addresses (0.0.0.0)
- * Running on http://127.0.0.1:80
- * Running on http://172.18.0.3:80
-Press CTRL+C to quit
-111.111.41.168 - - [12/Jul/2026 06:26:42] "GET / HTTP/1.1" 302 -
-111.111.41.168 - - [12/Jul/2026 06:26:42] "GET /login HTTP/1.1" 200 -
-111.111.41.168 - - [12/Jul/2026 06:26:42] "GET /favicon.ico HTTP/1.1" 404 -
-111.111.41.168 - - [12/Jul/2026 06:26:56] "POST /login HTTP/1.1" 302 -
-111.111.41.168 - - [12/Jul/2026 06:26:56] "GET / HTTP/1.1" 200 -
-111.111.41.168 - - [12/Jul/2026 06:40:25] "GET /analysis HTTP/1.1" 200 -
-Traceback (most recent call last):
-  File "/usr/local/bin/flask", line 8, in &lt;module&gt;
-    sys.exit(main())
-             ^^^^^^
-  File "/usr/local/lib/python3.12/site-packages/flask/cli.py", line 1131, in main
-    cli.main()
-  File "/usr/local/lib/python3.12/site-packages/click/core.py", line 1435, in main
-    rv = self.invoke(ctx)
-         ^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.12/site-packages/click/core.py", line 1902, in invoke
-    return _process_result(sub_ctx.command.invoke(sub_ctx))
-                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.12/site-packages/click/core.py", line 1298, in invoke
-    return ctx.invoke(self.callback, **ctx.params)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.12/site-packages/click/core.py", line 853, in invoke
-    return callback(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.12/site-packages/click/decorators.py", line 93, in new_func
-    return ctx.invoke(f, obj, *args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.12/site-packages/click/core.py", line 853, in invoke
-    return callback(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.12/site-packages/flask/cli.py", line 979, in run_command
-    raise e from None
-  File "/usr/local/lib/python3.12/site-packages/flask/cli.py", line 963, in run_command
-    app: WSGIApplication = info.load_app()  # pyright: ignore
-                           ^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.12/site-packages/flask/cli.py", line 349, in load_app
-    app = locate_app(import_name, name)
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/usr/local/lib/python3.12/site-packages/flask/cli.py", line 245, in locate_app
-    __import__(module_name)
-  File "/app/flaskr/__init__.py", line 3, in &lt;module&gt;
-    import flaskr.main
-  File "/app/flaskr/main.py", line 235
-    progress_data = {"labels": [], "data": []}
-IndentationError: unexpected indent
-</pre>
-        <br>
-        エラーの要因を特定
-    </div>
-    <div class="response"><strong>【回答】</strong><br>
-        ログ解析結果とエラー要因の特定<br>
-        <br>
-        提示されたログのスタックトレース（Traceback）から、アプリケーションがアクセス不能に陥った直接的な要因は明白である。<br>
-        <br>
-        発生している事象：構文エラー（IndentationError）<br>
-        <br>
-        該当ファイル: /app/flaskr/main.py<br>
-        該当行: 235行目 (progress_data = {"labels": [], "data": []})<br>
-        エラー内容: IndentationError: unexpected indent（予期しないインデント）<br>
-        なぜ不適切か（論理的理由）<br>
-        <br>
-        Pythonは、インデント（行頭の字下げ）によってコードのブロック（論理的な階層構造）を厳格に判定する仕様である。<br>
-        <br>
-        エラーログは、main.py の235行目において、前後の論理構造と合致しない不要なスペース（またはタブ文字）が挿入されていることを示している。直前のコード編集やコピー＆ペーストの際に字下げが乱れた結果、Pythonインタプリタが構文を解析できず、アプリケーションの起動（またはホットリロード）プロセスが強制終了（クラッシュ）している。<br>
-        <br>
-        また、アクセスログのタイムライン（06:40:25 まで正常に GET /analysis を処理している事実）から、稼働中のコンテナに対して不完全なコード変更が適用された瞬間にシステムダウンが引き起こされたことが読み取れる。構文チェック（Lint等）を行わずに実行環境へ変更を反映させる手法は、インフラ運用において重大なサービス停止リスクとなる。<br>
-        <br>
-        具体的な改善策（修正手順）<br>
-        <br>
-        以下の手順で、コードの構造的な欠陥を排除すること。<br>
-        <br>
-        インデントの修正:<br>
-        エディタで flaskr/main.py の235行目を開く。progress_data = ... の行頭にある空白を削除または追加し、同一ブロック内のコード（直後の if selected_menu_id: など）と文字の開始位置を完全に同一に揃える。<br>
-        スペースとタブの混在排除:<br>
-        Pythonにおけるインデントの標準（PEP 8）は「半角スペース4つ」である。該当行の字下げにタブ文字（Tab）が混入していないか確認し、すべて半角スペースに統一する。<br>
-        再起動と稼働確認:<br>
-        ファイルを上書き保存した後、ターミナルで docker restart flask-service を実行する。直後に docker logs --tail 10 flask-service を確認し、再度Traceback（エラー）が出力されず、正常な待機状態（Running on...）に復帰したことを確認してからブラウザでアクセスする。
-    </div>
-</details>
+      const qLabel = document.createElement('label'); qLabel.className='field-label'; qLabel.textContent='問題文';
+      const qInput = document.createElement('textarea'); qInput.className='field-textarea'; qInput.rows=2; qInput.value=q.question;
+      qInput.addEventListener('input', ()=>{ q.question = qInput.value; markDirty(); });
 
+      const choicesWrap = document.createElement('div'); choicesWrap.style.marginTop='10px';
+      const cLabel = document.createElement('label'); cLabel.className='field-label'; cLabel.textContent='選択肢（正解をマーク）';
+      choicesWrap.appendChild(cLabel);
+      q.choices.forEach((ch, ci)=>{
+        const row = document.createElement('div'); row.className='choice-row';
+        const radio = document.createElement('input'); radio.type='radio'; radio.name='correct-'+q.id;
+        radio.checked = q.correct===ci;
+        radio.addEventListener('change', ()=>{ q.correct = ci; markDirty(); });
+        const txt = document.createElement('input'); txt.type='text'; txt.className='field-input';
+        txt.placeholder = '選択肢 '+(ci+1); txt.value = ch;
+        txt.addEventListener('input', ()=>{ q.choices[ci] = txt.value; markDirty(); });
+        row.append(radio, txt);
+        choicesWrap.appendChild(row);
+      });
+
+      const eLabel = document.createElement('label'); eLabel.className='field-label'; eLabel.textContent='解説（任意）'; eLabel.style.marginTop='6px'; eLabel.style.display='block';
+      const eInput = document.createElement('textarea'); eInput.className='field-textarea'; eInput.rows=2; eInput.value=q.explanation;
+      eInput.addEventListener('input', ()=>{ q.explanation = eInput.value; markDirty(); });
+
+      card.append(top, qLabel, qInput, choicesWrap, eLabel, eInput);
+      list.appendChild(card);
+    });
+  }
+
+  async function doSave(){
+    if(!project.title) project.title = '無題の教材';
+    await projSave(project);
+    clearDirty();
+    toast('保存しました');
+  }
+
+  /* ===================== PREVIEW screen ===================== */
+  const previewVideo = document.getElementById('previewVideo');
+  const previewOverlay = document.getElementById('previewCaptionOverlay');
+  const quizSection = document.getElementById('quizSection');
+  const rewatchRow = document.getElementById('rewatchRow');
+
+  function openPreview(){
+    document.getElementById('previewTitle').textContent = project.title || '無題の教材';
+    quizSection.classList.remove('show');
+    rewatchRow.style.display = 'none';
+    document.getElementById('scoreArea').innerHTML = '';
+    document.getElementById('retryQuizBtn').style.display = 'none';
+    if(videoUrl){
+      previewVideo.src = videoUrl;
+    } else {
+      toast('動画が未選択のため、プレビューできません');
+    }
+    renderQuizRunner();
+    showScreen('preview');
+  }
+
+  previewVideo.addEventListener('timeupdate', ()=>{
+    renderCaptionOverlay(previewVideo.currentTime, previewOverlay);
+  });
+  previewVideo.addEventListener('ended', ()=>{
+    quizSection.classList.add('show');
+    rewatchRow.style.display = 'flex';
+    quizSection.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+  document.getElementById('rewatchBtn').addEventListener('click', ()=>{
+    previewVideo.currentTime = 0;
+    previewVideo.play();
+  });
+
+  function renderQuizRunner(){
+    const runner = document.getElementById('quizRunner');
+    runner.innerHTML = '';
+    project.quiz.forEach((q, idx)=>{
+      const card = document.createElement('div');
+      card.className = 'pq-card';
+      card.dataset.id = q.id;
+      const qEl = document.createElement('div'); qEl.className='pq-q'; qEl.textContent = (idx+1)+'. '+(q.question||'(未入力の設問)');
+      card.appendChild(qEl);
+      q.choices.forEach((ch, ci)=>{
+        if(!ch) return;
+        const label = document.createElement('label'); label.className='pq-choice';
+        const radio = document.createElement('input'); radio.type='radio'; radio.name='run-'+q.id; radio.value=ci;
+        const span = document.createElement('span'); span.textContent = ch;
+        label.append(radio, span);
+        card.appendChild(label);
+      });
+      const explain = document.createElement('div'); explain.className='pq-explain'; explain.textContent = q.explanation || '';
+      card.appendChild(explain);
+      runner.appendChild(card);
+    });
+    if(project.quiz.length===0){
+      runner.innerHTML = '<div class="empty-side">この教材にはまだクイズが設定されていません。</div>';
+      document.getElementById('gradeBtn').style.display = 'none';
+    } else {
+      document.getElementById('gradeBtn').style.display = 'inline-flex';
+    }
+  }
+
+  document.getElementById('gradeBtn').addEventListener('click', ()=>{
+    let correctCount = 0;
+    project.quiz.forEach(q=>{
+      const card = document.querySelector('.pq-card[data-id="'+q.id+'"]');
+      const choices = card.querySelectorAll('.pq-choice');
+      const checked = card.querySelector('input[type=radio]:checked');
+      const chosen = checked ? parseInt(checked.value,10) : -1;
+      const ok = chosen === q.correct;
+      if(ok) correctCount++;
+      choices.forEach((c,ci)=>{
+        c.classList.remove('mark-correct','mark-incorrect');
+        if(ci===q.correct) c.classList.add('mark-correct');
+        else if(ci===chosen) c.classList.add('mark-incorrect');
+      });
+      card.classList.toggle('correct', ok);
+      card.classList.toggle('incorrect', !ok);
+      const explain = card.querySelector('.pq-explain');
+      if(explain.textContent.trim()) explain.classList.add('show');
+    });
+    const total = project.quiz.length;
+    const pct = total>0 ? Math.round((correctCount/total)*100) : 0;
+    const area = document.getElementById('scoreArea');
+    let cls = 'score-low', msg = 'もう一度動画を見直してみましょう。';
+    if(pct>=80){ cls='score-good'; msg='しっかり理解できています。'; }
+    else if(pct>=50){ cls='score-mid'; msg='あと少し。要点を振り返ってみましょう。'; }
+    area.innerHTML = '<div class="score-banner '+cls+'"><div class="num">'+correctCount+' / '+total+'　正解</div><div class="msg">'+msg+'</div></div>';
+    document.getElementById('gradeBtn').style.display = 'none';
+    document.getElementById('retryQuizBtn').style.display = 'inline-flex';
+    area.scrollIntoView({behavior:'smooth', block:'center'});
+  });
+
+  document.getElementById('retryQuizBtn').addEventListener('click', ()=>{
+    document.getElementById('scoreArea').innerHTML = '';
+    document.getElementById('retryQuizBtn').style.display = 'none';
+    document.getElementById('gradeBtn').style.display = 'inline-flex';
+    renderQuizRunner();
+  });
+
+  /* ===================== init ===================== */
+  goList();
+})();
+</script>
 </body>
 </html>
