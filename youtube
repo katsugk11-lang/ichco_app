@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>動画教材</title>
+<style>
+:root{--bg:#12201A;--p:#1B2F26;--p2:#24392F;--line:#3C554A;--txt:#F4F1E6;--muted:#B9C4BC;--a:#E8B94A;--ok:#7FD8A3}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,"Noto Sans JP",sans-serif}.app{max-width:1000px;margin:auto;padding:24px 18px 50px}
+header{display:flex;align-items:center;border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:22px}.brand{margin-right:auto}.eyebrow{font-size:11px;color:var(--a);letter-spacing:.12em}.brand h1{font-size:20px;margin:3px 0}.btn{background:var(--p2);color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:9px 15px;cursor:pointer}.primary{background:var(--a);color:#2A2005;border-color:var(--a);font-weight:700}
+.screen{display:none}.screen.active{display:block}h2{margin:0 0 6px;font-size:21px}.lead,.status{color:var(--muted)}.course-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px}.course,.quiz-card,.result{background:var(--p);border:1px solid var(--line);border-radius:13px;padding:18px}.course{display:flex;flex-direction:column;gap:11px}.course h3{margin:0}.course p{margin:0;color:var(--muted);font-size:13px;line-height:1.6}.meta{font-size:12px;color:var(--a)}
+.lesson-head{display:flex;justify-content:space-between;gap:15px;margin-bottom:14px}.player-wrap{background:#000;border-radius:13px;overflow:hidden;border:1px solid var(--line)}#player{width:100%;aspect-ratio:16/9}.progress{height:8px;background:var(--p2);border-radius:99px;overflow:hidden;margin:14px 0}.progress div{height:100%;background:var(--a);transition:.2s}.lesson-list{display:flex;gap:8px;overflow:auto;margin-top:16px}.lesson-item{min-width:180px;background:var(--p);border:1px solid var(--line);border-radius:9px;padding:10px;font-size:12px;color:var(--muted);cursor:pointer}.lesson-item.current{border-color:var(--a);color:var(--txt)}.lesson-item.done{border-color:var(--ok)}.lesson-item.skipped{border-color:#D9A441;color:var(--txt)}.option{display:block;background:var(--p2);border:1px solid var(--line);border-radius:9px;padding:11px;margin:8px 0;cursor:pointer}.question{font-weight:600;margin:7px 0 15px}.qnum{font-size:12px;color:var(--a);font-weight:700}.score{font-size:34px;color:var(--a);font-weight:700;margin:12px}.note{font-size:11px;color:var(--muted);line-height:1.6;margin-top:18px}
+@media(max-width:650px){.lesson-head{flex-direction:column}}
+
+.admin-tabs{display:flex;gap:8px;margin:0 0 16px}.admin-card{background:var(--p);border:1px solid var(--line);border-radius:13px;padding:16px;margin-bottom:14px}.admin-card h3{margin:0 0 12px}.field{display:flex;flex-direction:column;gap:6px;margin:9px 0}.field label{font-size:12px;color:var(--muted)}.field input,.field textarea{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:9px;font:inherit}.field textarea{min-height:70px;resize:vertical}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.danger{color:#E2725B}.log-table{width:100%;border-collapse:collapse;font-size:12px}.log-table th,.log-table td{padding:9px;border-bottom:1px solid var(--line);text-align:left}.log-table th{color:var(--a)}.empty{padding:24px;text-align:center;color:var(--muted)}
+#passwordModal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:9999;padding:18px}
+#passwordModal.show{display:flex}.password-box{width:min(380px,100%);background:var(--p);border:1px solid var(--line);border-radius:13px;padding:22px}
+.password-box h3{margin:0 0 8px}.password-box p{color:var(--muted);font-size:13px;line-height:1.6}.password-box input{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:10px;font-size:16px;margin:8px 0}.password-error{color:#E2725B;font-size:12px;min-height:18px}
+</style>
+</head>
+<body>
+<div id="passwordModal">
+  <div class="password-box">
+    <h3>管理画面へのアクセス</h3>
+    <p>管理者パスワードを入力してください。</p>
+    <input id="adminPasswordInput" type="password" placeholder="パスワード">
+    <div id="passwordError" class="password-error"></div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn" id="passwordCancel">キャンセル</button>
+      <button class="btn primary" id="passwordSubmit">ログイン</button>
+    </div>
+  </div>
+</div>
+<div class="app">
+<header><div class="brand"><div class="eyebrow">VIDEO LESSON</div><h1>動画教材</h1></div><button class="btn" id="learnerBtn">受講者: ゲスト</button><button class="btn" id="homeBtn" hidden>コース一覧</button><button class="btn" id="adminBtn">管理画面</button></header>
+
+<section id="home" class="screen active"><h2>コースを選択</h2><p class="lead">受講したい教材を選択してください。</p><div id="courses" class="course-grid"></div><p class="note">動画はYouTubeから再生します。動画ファイルは保存しません。受講状況とクイズ結果は、受講者名ごとにこのブラウザに保存します。</p></section>
+
+<section id="lesson" class="screen">
+<div class="lesson-head"><div><h2 id="courseTitle"></h2><p id="lessonTitle" class="lead"></p></div><div style="display:flex;gap:8px;flex:0 0 auto"><button id="skipLesson" class="btn">この動画をスキップ</button><button id="restart" class="btn">最初から</button></div></div>
+<div class="progress"><div id="bar"></div></div><div id="status" class="status"></div><div class="player-wrap"><div id="player"></div></div><div id="lessonStatus" class="status"></div><div id="lessonList" class="lesson-list"></div>
+</section>
+
+
+<section id="admin" class="screen">
+  <div class="lesson-head">
+    <div><h2>管理画面</h2><p class="lead">教材の編集と、このブラウザに保存された受講記録を確認できます。</p></div>
+    <button id="adminBack" class="btn">コース一覧</button>
+  </div>
+  <div class="admin-tabs">
+    <button class="btn primary" id="editTab">教材を編集</button>
+    <button class="btn" id="logTab">受講記録</button>
+  </div>
+  <div id="editorPanel"></div>
+  <div id="logPanel" hidden></div>
+</section>
+
+<section id="quiz" class="screen"><h2 id="quizTitle"></h2><p class="lead">動画の視聴が完了しました。クイズに回答してください。</p><div id="quizForm"></div><button id="grade" class="btn primary">採点する</button></section>
+
+<section id="result" class="screen"><div class="result" style="text-align:center"><h2>受講完了</h2><div id="score" class="score"></div><p id="message"></p><button id="back" class="btn primary">コース一覧へ</button></div></section>
+</div>
+
+<script>
+/* ===== 教材データ ===== */
+const DEFAULT_COURSES=[
+ {id:"course1",title:"サンプル教材：技術伝承の基礎",description:"YouTube動画を順番に視聴し、最後にクイズへ回答する教材です。",
+  lessons:[
+   {title:"第1章　基礎",youtube:"https://www.youtube.com/watch?v=M7lc1UVf-VE"},
+   {title:"第2章　実践",youtube:"https://www.youtube.com/watch?v=M7lc1UVf-VE"},
+   {title:"第3章　まとめ",youtube:"https://www.youtube.com/watch?v=M7lc1UVf-VE"}],
+  quiz:[
+   {question:"技術伝承で重要な考え方は？",choices:["経験や判断基準を共有可能な形にする","ベテランだけが判断する","新人には説明しない","動画だけで全技能を自動習得する"],correct:0},
+   {question:"動画教材の利点として適切なのは？",choices:["一度しか見られない","何度でも同じ内容を確認できる","クイズが不要になる","必ず対面指導が不要になる"],correct:1}]
+ }
+];
+const COURSE_KEY="videoLessonCourses_v2",PROGRESS_KEY="videoLessonProgress_v3",QUIZ_KEY="videoLessonQuiz_v3",LOG_KEY="videoLessonLogs_v3",LEARNER_KEY="videoLessonLearner_v1";
+let COURSES=load(COURSE_KEY,DEFAULT_COURSES);
+let course=null,lessonIndex=0,player=null,pendingId=null,playerReady=false,watchTimerStart=null;
+let learner=localStorage.getItem(LEARNER_KEY)||"ゲスト";
+
+const $=id=>document.getElementById(id);
+function load(k,d){try{let v=JSON.parse(localStorage.getItem(k));return v??structuredClone(d)}catch(e){return structuredClone(d)}}
+function put(k,v){localStorage.setItem(k,JSON.stringify(v))}
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function show(id){document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));$(id).classList.add("active")}
+function yt(url){try{let u=new URL(url);if(u.hostname.includes("youtu.be"))return u.pathname.slice(1).split("/")[0];if(u.searchParams.get("v"))return u.searchParams.get("v");let p=u.pathname.split("/"),i=p.indexOf("embed");return i>=0?p[i+1]:""}catch(e){return""}}
+function now(){return new Date().toLocaleString("ja-JP",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})}
+function fmtDuration(sec){sec=Math.max(0,Math.round(sec||0));let h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60;return h>0?`${h}時間${m}分`:m>0?`${m}分${s}秒`:`${s}秒`}
+function updateLearnerBtn(){$("learnerBtn").textContent="受講者: "+learner}
+function changeLearner(){
+ let n=prompt("受講者名を入力してください（管理画面でこの名前ごとに記録が確認できます）",learner);
+ if(n&&n.trim()){learner=n.trim();localStorage.setItem(LEARNER_KEY,learner);updateLearnerBtn();renderCourses()}
+}
+function progressFor(name,courseId){let p=load(PROGRESS_KEY,{});return p[name]?.[courseId]}
+function ensureProgress(p,name,courseId){p[name]??={};p[name][courseId]??={done:[],skipped:[],watch:{}};return p[name][courseId]}
+function flushWatchTime(){
+ if(!watchTimerStart||!course){watchTimerStart=null;return}
+ let sec=(Date.now()-watchTimerStart)/1000;watchTimerStart=null;
+ if(sec<=0.5)return;
+ let p=load(PROGRESS_KEY,{}),rec=ensureProgress(p,learner,course.id);
+ rec.watch[lessonIndex]=(rec.watch[lessonIndex]||0)+sec;
+ put(PROGRESS_KEY,p);
+}
+
+function renderCourses(){
+ const box=$("courses"),p=load(PROGRESS_KEY,{}),q=load(QUIZ_KEY,{});
+ box.innerHTML="";
+ COURSES.forEach(c=>{
+  let prog=p[learner]?.[c.id],done=prog?.done?.length||0,r=q[learner]?.[c.id],x=document.createElement("div");x.className="course";
+  x.innerHTML=`<h3>${esc(c.title)}</h3><p>${esc(c.description)}</p><div class="meta">${c.lessons.length}本の動画 ・ ${c.quiz.length}問のクイズ</div><div style="font-size:12px;color:var(--muted)">視聴 ${done}/${c.lessons.length}${r?"　クイズ "+r.score+"/"+r.total:""}</div><button class="btn primary">受講する</button>`;
+  x.querySelector("button").onclick=()=>start(c);box.appendChild(x)
+ })
+}
+function start(c){
+ course=c;lessonIndex=0;$("homeBtn").hidden=false;
+ addLog("受講開始",c.title,"");
+ show("lesson");loadLesson(0)
+}
+function loadLesson(i){
+ flushWatchTime();
+ lessonIndex=i;let l=course.lessons[i],id=yt(l.youtube);
+ $("courseTitle").textContent=course.title;$("lessonTitle").textContent=l.title;renderList();updateProgress();
+ if(!id){$("player").innerHTML="<div style='padding:40px;text-align:center'>YouTube URLが正しくありません。動画をスキップして次へ進むことができます。</div>";return}
+ addLog("動画開始",course.title,l.title);
+ try{
+  if(player&&playerReady&&player.loadVideoById){player.loadVideoById(id);return}
+  if(window.YT?.Player)createPlayer(id);else pendingId=id
+ }catch(err){
+  console.error(err);
+  $("player").innerHTML="<div style='padding:40px;text-align:center'>動画プレーヤーの読み込みに失敗しました。通信環境をご確認のうえ、再度お試しいただくか、この動画をスキップしてください。</div>";
+ }
+}
+function createPlayer(id){
+ playerReady=false;
+ try{
+  player=new YT.Player("player",{videoId:id,playerVars:{rel:0,playsinline:1,origin:location.origin},
+   events:{
+    onReady:()=>{playerReady=true},
+    onStateChange:e=>{
+     if(e.data===YT.PlayerState.PLAYING)watchTimerStart=Date.now();else flushWatchTime();
+     if(e.data===YT.PlayerState.ENDED)ended()
+    },
+    onError:e=>{
+     flushWatchTime();
+     const msgs={2:"動画IDのパラメータが正しくありません。",5:"HTML5プレーヤーでこの動画を再生できません。",100:"動画が見つからないか、削除されています。",101:"投稿者の設定によりこの動画は埋め込み再生できません。",150:"投稿者の設定によりこの動画は埋め込み再生できません。"};
+     $("lessonStatus").textContent=(msgs[e.data]||"動画の再生中にエラーが発生しました。")+"　「この動画をスキップ」で次に進めます。";
+     addLog("動画再生エラー",course.title,`${course.lessons[lessonIndex].title}（code:${e.data}）`);
+    }
+   }})
+ }catch(err){
+  console.error(err);
+  $("player").innerHTML="<div style='padding:40px;text-align:center'>動画プレーヤーを初期化できませんでした。この動画をスキップして次へ進むことができます。</div>";
+ }
+}
+function ended(){
+ flushWatchTime();
+ let p=load(PROGRESS_KEY,{}),rec=ensureProgress(p,learner,course.id);
+ if(!rec.done.includes(lessonIndex))rec.done.push(lessonIndex);
+ put(PROGRESS_KEY,p);
+ addLog("動画視聴完了",course.title,course.lessons[lessonIndex].title);updateProgress();
+ if(lessonIndex<course.lessons.length-1){loadLesson(lessonIndex+1)}else setTimeout(showQuiz,400)
+}
+function skipLesson(){
+ if(!course)return;
+ flushWatchTime();
+ let p=load(PROGRESS_KEY,{}),rec=ensureProgress(p,learner,course.id);
+ if(!rec.skipped.includes(lessonIndex))rec.skipped.push(lessonIndex);
+ put(PROGRESS_KEY,p);
+ addLog("動画スキップ",course.title,course.lessons[lessonIndex].title);
+ if(lessonIndex<course.lessons.length-1){loadLesson(lessonIndex+1)}else showQuiz()
+}
+function updateProgress(){
+ let rec=progressFor(learner,course.id)||{},done=rec.done||[],skipped=rec.skipped||[];
+ let seen=new Set([...done,...skipped]);
+ $("bar").style.width=(seen.size/course.lessons.length*100)+"%";
+ $("status").textContent=`動画 ${lessonIndex+1} / ${course.lessons.length}　視聴済み ${done.length}／スキップ ${skipped.length}／全 ${course.lessons.length}`;
+ $("lessonStatus").textContent="動画を最後まで視聴すると自動的に次へ進みます。「この動画をスキップ」で先に進むこともできます。"
+}
+function renderList(){
+ let rec=progressFor(learner,course.id)||{},done=rec.done||[],skipped=rec.skipped||[],b=$("lessonList");b.innerHTML="";
+ course.lessons.forEach((l,i)=>{let x=document.createElement("div");
+  x.className="lesson-item "+(i===lessonIndex?"current ":"")+(done.includes(i)?"done":(skipped.includes(i)?"skipped":""));
+  x.textContent=(done.includes(i)?"✓ ":skipped.includes(i)?"↷ ":"")+l.title;
+  x.onclick=()=>loadLesson(i);b.appendChild(x)})
+}
+function showQuiz(){
+ flushWatchTime();
+ $("quizTitle").textContent=course.title+"｜確認クイズ";let f=$("quizForm");f.innerHTML="";
+ course.quiz.forEach((q,n)=>{let c=document.createElement("div");c.className="quiz-card";c.innerHTML=`<div class="qnum">Q${n+1}</div><div class="question">${esc(q.question)}</div>`;
+ q.choices.forEach((v,i)=>{let l=document.createElement("label");l.className="option";l.innerHTML=`<input type="radio" name="q${n}" value="${i}"> ${esc(v)}`;c.appendChild(l)});f.appendChild(c)});
+ show("quiz")
+}
+$("grade").onclick=()=>{
+ let s=0;course.quiz.forEach((q,i)=>{let x=document.querySelector(`input[name=q${i}]:checked`);if(x&&+x.value===q.correct)s++});
+ let r=load(QUIZ_KEY,{});r[learner]??={};r[learner][course.id]={score:s,total:course.quiz.length,at:Date.now()};put(QUIZ_KEY,r);
+ addLog("クイズ完了",course.title,`${s}/${course.quiz.length}問`);
+ $("score").textContent=`${s} / ${course.quiz.length} 問`;$("message").textContent=`正答率 ${course.quiz.length?Math.round(s/course.quiz.length*100):0}%`;show("result")
+};
+function addLog(type,courseTitle,detail){
+ let logs=load(LOG_KEY,[]);logs.push({time:Date.now(),date:now(),type,course:courseTitle,detail,learner});
+ put(LOG_KEY,logs.slice(-2000))
+}
+function home(){
+ flushWatchTime();
+ if(player?.stopVideo){try{player.stopVideo()}catch(e){}}
+ course=null;$("homeBtn").hidden=true;show("home");renderCourses()
+}
+
+/* ===== 管理画面 ===== */
+function openAdmin(){renderEditor();show("admin")}
+function renderEditor(){
+ $("editorPanel").hidden=false;$("logPanel").hidden=true;$("editTab").className="btn primary";$("logTab").className="btn";
+ let b=$("editorPanel");b.innerHTML="";
+ COURSES.forEach((c,ci)=>{
+  let card=document.createElement("div");card.className="admin-card";
+  card.innerHTML=`<h3>コース ${ci+1}</h3>
+   <div class="field"><label>コース名</label><input class="ct" value="${esc(c.title)}"></div>
+   <div class="field"><label>説明</label><textarea class="cd">${esc(c.description)}</textarea></div>
+   <div class="lessons"></div><button class="btn addLesson">＋ 動画を追加</button>
+   <hr style="border-color:var(--line);border-width:1px 0 0;margin:16px 0">
+   <div class="quizEdit"></div><button class="btn addQuiz">＋ クイズを追加</button>
+   <div class="row" style="margin-top:14px"><button class="btn primary saveCourse">このコースを保存</button><button class="btn danger deleteCourse">コース削除</button></div>`;
+  b.appendChild(card);
+  const lessons=card.querySelector(".lessons");
+  c.lessons.forEach((l,i)=>lessonEditor(lessons,c,l,i));
+  c.quiz.forEach((q,i)=>quizEditor(card.querySelector(".quizEdit"),c,q,i));
+  card.querySelector(".addLesson").onclick=()=>{let l={title:"新しい動画",youtube:""};c.lessons.push(l);lessonEditor(lessons,c,l,c.lessons.length-1)};
+  card.querySelector(".addQuiz").onclick=()=>{let q={question:"",choices:["","","",""],correct:0};c.quiz.push(q);quizEditor(card.querySelector(".quizEdit"),c,q,c.quiz.length-1)};
+  card.querySelector(".saveCourse").onclick=()=>{c.title=card.querySelector(".ct").value.trim()||"無題のコース";c.description=card.querySelector(".cd").value.trim();COURSES[ci]=c;put(COURSE_KEY,COURSES);renderCourses();alert("保存しました")};
+  card.querySelector(".deleteCourse").onclick=()=>{if(confirm("このコースを削除しますか？")){COURSES.splice(ci,1);put(COURSE_KEY,COURSES);renderEditor();renderCourses()}}
+ })
+ let add=document.createElement("button");add.className="btn primary";add.textContent="＋ 新しいコース";add.onclick=()=>{COURSES.push({id:"course_"+Date.now(),title:"新しいコース",description:"",lessons:[],quiz:[]});put(COURSE_KEY,COURSES);renderEditor()};b.appendChild(add)
+}
+function lessonEditor(parent,c,l,i){
+ let d=document.createElement("div");d.className="admin-card";d.innerHTML=`<div class="row"><strong>動画 ${i+1}</strong><button class="btn danger del">削除</button></div>
+ <div class="field"><label>動画タイトル</label><input class="lt" value="${esc(l.title)}"></div><div class="field"><label>YouTube URL</label><input class="lu" value="${esc(l.youtube)}" placeholder="https://www.youtube.com/watch?v=..."></div>`;
+ parent.appendChild(d);d.querySelector(".lt").oninput=e=>l.title=e.target.value;d.querySelector(".lu").oninput=e=>l.youtube=e.target.value;d.querySelector(".del").onclick=()=>{c.lessons.splice(i,1);renderEditor()}
+}
+function quizEditor(parent,c,q,i){
+ let d=document.createElement("div");d.className="admin-card";d.innerHTML=`<div class="row"><strong>クイズ ${i+1}</strong><button class="btn danger del">削除</button></div><div class="field"><label>問題文</label><textarea class="qt">${esc(q.question)}</textarea></div>`;
+ q.choices.forEach((v,j)=>{let r=document.createElement("div");r.className="field";r.innerHTML=`<label>選択肢 ${j+1} ${q.correct===j?"（正解）":""}</label><div class="row"><input value="${esc(v)}"><label style="flex:0 0 auto"><input type="radio" name="correct_${c.id}_${i}" ${q.correct===j?"checked":""}> 正解</label></div>`;d.appendChild(r);let inp=r.querySelector("input[type=text],input:not([type=radio])");inp.oninput=e=>q.choices[j]=e.target.value;r.querySelector("input[type=radio]").onchange=()=>{q.correct=j;renderEditor()}})
+ parent.appendChild(d);d.querySelector(".qt").oninput=e=>q.question=e.target.value;d.querySelector(".del").onclick=()=>{c.quiz.splice(i,1);renderEditor()}
+}
+function renderLogs(){
+ $("editorPanel").hidden=true;$("logPanel").hidden=false;$("editTab").className="btn";$("logTab").className="btn primary";
+ let logs=load(LOG_KEY,[]),p=load(PROGRESS_KEY,{}),q=load(QUIZ_KEY,{});
+ let b=$("logPanel");
+ b.innerHTML=`<div class="admin-card"><h3>受講者別サマリー</h3><p class="lead">このブラウザに保存された記録から、受講者・コースごとの視聴時間や正答率を集計しています。別の端末・別のブラウザの受講記録は集まりません。</p></div>`;
+
+ let names=new Set([...Object.keys(p),...Object.keys(q)]);
+ let rows=[];
+ names.forEach(name=>{
+  COURSES.forEach(c=>{
+   let prog=p[name]?.[c.id],r=q[name]?.[c.id];
+   if(!prog&&!r)return;
+   let done=prog?.done?.length||0,skip=prog?.skipped?.length||0;
+   let watchSec=Object.values(prog?.watch||{}).reduce((a,v)=>a+v,0);
+   rows.push({name,course:c.title,done,total:c.lessons.length,skip,watchSec,score:r?`${r.score} / ${r.total}`:"—",rate:r&&r.total?Math.round(r.score/r.total*100)+"%":"—"});
+  })
+ });
+ if(!rows.length){b.innerHTML+=`<div class="empty">受講記録はありません。</div>`}
+ else{
+  rows.sort((a,b2)=>a.name.localeCompare(b2.name,"ja")||a.course.localeCompare(b2.course,"ja"));
+  let t=document.createElement("div");t.className="admin-card";t.style.overflowX="auto";
+  t.innerHTML=`<table class="log-table"><thead><tr><th>受講者</th><th>コース</th><th>視聴済み</th><th>スキップ</th><th>視聴時間</th><th>クイズ結果</th><th>正答率</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.course)}</td><td>${x.done} / ${x.total}</td><td>${x.skip}</td><td>${esc(fmtDuration(x.watchSec))}</td><td>${esc(x.score)}</td><td>${esc(x.rate)}</td></tr>`).join("")}</tbody></table>`;
+  b.appendChild(t);
+ }
+
+ let logHead=document.createElement("div");logHead.className="admin-card";
+ logHead.innerHTML=`<div class="row" style="justify-content:space-between;align-items:center"><h3 style="margin:0">受講ログ（生データ）</h3><button class="btn danger" id="clearLogs">ログを削除</button></div>`;
+ b.appendChild(logHead);
+ if(!logs.length){b.innerHTML+=`<div class="empty">受講記録はありません。</div>`}
+ else{
+  let t2=document.createElement("div");t2.className="admin-card";t2.style.overflowX="auto";
+  t2.innerHTML=`<table class="log-table"><thead><tr><th>日時</th><th>受講者</th><th>内容</th><th>コース</th><th>詳細</th></tr></thead><tbody>${logs.slice().reverse().map(x=>`<tr><td>${esc(x.date)}</td><td>${esc(x.learner||"—")}</td><td>${esc(x.type)}</td><td>${esc(x.course)}</td><td>${esc(x.detail)}</td></tr>`).join("")}</tbody></table>`;
+  b.appendChild(t2);
+ }
+ $("clearLogs").onclick=()=>{if(confirm("このブラウザの受講ログをすべて削除しますか？")){localStorage.removeItem(LOG_KEY);renderLogs()}}
+}
+
+/* ===== navigation ===== */
+$("homeBtn").onclick=home;$("back").onclick=home;
+$("learnerBtn").onclick=changeLearner;$("skipLesson").onclick=skipLesson;
+updateLearnerBtn();
+document.addEventListener("visibilitychange",()=>{
+ if(document.hidden)flushWatchTime();
+ else if(player?.getPlayerState&&window.YT&&player.getPlayerState()===YT.PlayerState.PLAYING)watchTimerStart=Date.now();
+});
+window.addEventListener("beforeunload",flushWatchTime);
+let adminUnlocked=false;
+const ADMIN_PASSWORD_KEY="videoLessonAdminPassword_v1";
+const DEFAULT_ADMIN_PASSWORD="admin1234";
+
+function getAdminPassword(){
+  return localStorage.getItem(ADMIN_PASSWORD_KEY) || DEFAULT_ADMIN_PASSWORD;
+}
+function requestAdmin(){
+  flushWatchTime();
+  if(adminUnlocked){openAdmin();return}
+  $("adminPasswordInput").value="";
+  $("passwordError").textContent="";
+  $("passwordModal").classList.add("show");
+  setTimeout(()=>$("adminPasswordInput").focus(),50);
+}
+function submitAdminPassword(){
+  if($("adminPasswordInput").value===getAdminPassword()){
+    adminUnlocked=true;
+    $("passwordModal").classList.remove("show");
+    openAdmin();
+  }else{
+    $("passwordError").textContent="パスワードが正しくありません。";
+    $("adminPasswordInput").select();
+  }
+}
+$("adminBtn").onclick=requestAdmin;
+$("passwordSubmit").onclick=submitAdminPassword;
+$("passwordCancel").onclick=()=>$("passwordModal").classList.remove("show");
+$("adminPasswordInput").addEventListener("keydown",e=>{if(e.key==="Enter")submitAdminPassword()});
+$("adminBack").onclick=home;
+$("editTab").onclick=renderEditor;$("logTab").onclick=renderLogs;
+$("restart").onclick=()=>{
+ flushWatchTime();
+ let p=load(PROGRESS_KEY,{});p[learner]??={};p[learner][course.id]={done:[],skipped:[],watch:{}};put(PROGRESS_KEY,p);
+ addLog("受講リセット",course.title,"");lessonIndex=0;loadLesson(0)
+};
+window.onYouTubeIframeAPIReady=()=>{if(pendingId){createPlayer(pendingId);pendingId=null}};
+let s=document.createElement("script");s.src="https://www.youtube.com/iframe_api";document.head.appendChild(s);
+renderCourses();
+</script>
+</body></html>
