@@ -23,6 +23,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-disp
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:26px;gap:12px;flex-wrap:wrap}
+.brand{background:none;border:0;padding:0;margin:0;text-align:left;cursor:pointer;color:inherit;font:inherit}
 .brand h1{font-size:19px;font-weight:700;margin:0;letter-spacing:-.01em}
 .brand .tagline{font-size:12.5px;color:var(--muted);margin-top:2px;letter-spacing:0}
 .header-actions{display:flex;gap:8px;flex-wrap:wrap}
@@ -36,6 +37,7 @@ header{display:flex;align-items:center;justify-content:space-between;border-bott
  .primary:hover{background:#F5B65C;border-color:#F5B65C}
  .course:hover::before{background:var(--accent)}
  .option:hover{border-color:var(--muted)}
+ .brand:hover h1{color:var(--accent)}
 }
 
 .screen{display:none}.screen.active{display:block}
@@ -139,7 +141,7 @@ h2{margin:0 0 6px;font-size:21px;font-weight:700;letter-spacing:-.01em}
   </div>
 </div>
 <div class="app">
-<header><div class="brand"><h1>動画教材</h1><div class="tagline">工程動画で学ぶ、現場のスキル</div></div><div class="header-actions"><button class="btn" id="learnerBtn">受講者: ゲスト</button><button class="btn" id="myLogBtn">自分の記録</button><button class="btn" id="homeBtn" hidden>コース一覧</button><button class="btn" id="adminBtn">管理画面</button></div></header>
+<header><button class="brand" id="brandBtn"><h1>動画教材</h1><div class="tagline">工程動画で学ぶ、現場のスキル</div></button><div class="header-actions"><button class="btn" id="learnerBtn">受講者: ゲスト</button><button class="btn" id="myLogBtn">自分の記録</button><button class="btn" id="adminBtn">管理画面</button></div></header>
 
 <section id="home" class="screen active">
 <div id="configWarning" class="warn" hidden>Supabaseの接続設定がまだ行われていません。index.html内の SUPABASE_URL と SUPABASE_ANON_KEY を書き換えてください。</div>
@@ -233,7 +235,7 @@ async function renderCourses(){
  })
 }
 function start(c){
- course=c;lessonIndex=0;$("homeBtn").hidden=false;
+ course=c;lessonIndex=0;
  addLog("受講開始",c.title,"");
  show("lesson");loadLesson(0)
 }
@@ -333,7 +335,7 @@ function addLog(type,courseTitle,detail){
 function home(){
  flushWatchTime();
  if(player?.stopVideo){try{player.stopVideo()}catch(e){}}
- course=null;$("homeBtn").hidden=true;show("home");renderCourses()
+ course=null;show("home");renderCourses()
 }
 
 /* ===== 管理画面：教材編集 ===== */
@@ -542,7 +544,7 @@ $("nameInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing
 $("nameAdminLink").onclick=()=>{$("nameModal").classList.remove("show");requestAdmin()};
 
 /* ===== navigation ===== */
-$("homeBtn").onclick=home;$("back").onclick=home;
+$("brandBtn").onclick=home;$("back").onclick=home;
 $("myLogBtn").onclick=openMyLog;$("myLogBack").onclick=home;
 $("learnerBtn").onclick=changeLearner;$("skipLesson").onclick=skipLesson;
 updateLearnerBtn();
