@@ -1,0 +1,814 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>動画教材</title>
+<meta name="description" content="工程動画で学ぶ、現場のスキル">
+<meta property="og:type" content="website">
+<meta property="og:title" content="動画教材">
+<meta property="og:description" content="工程動画で学ぶ、現場のスキル">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+ --bg:#14181D;--surface:#1B2126;--surface-2:#242B32;
+ --line:#333C45;--text:#ECEEF1;--muted:#8B95A1;
+ --accent:#F2A73B;--accent-hover:#F5B65C;--accent-ink:#241A05;
+ --done:#4FC9A6;--skip:#7C93B8;--danger:#E2604F;
+ --warn-bg:#2B2308;--warn-border:#6B5620;--warn-text:#EFC888;
+ --radius:6px;--radius-sm:4px;--radius-lg:8px;
+ --font-display:'Zen Kaku Gothic New',system-ui,-apple-system,"Noto Sans JP",sans-serif;
+ --font-mono:'JetBrains Mono','Zen Kaku Gothic New',system-ui,sans-serif;
+ --fs-xs:11px;--fs-sm:12.5px;--fs-base:14px;--fs-md:15px;--fs-course:17px;--fs-lg:19px;--fs-xl:21px;--fs-score:38px;
+}
+@media(max-width:650px){:root{--fs-score:32px}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-display)}
+.app{max-width:900px;margin:auto;padding:28px 20px 60px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:26px;gap:12px;flex-wrap:wrap}
+.brand{background:none;border:0;padding:0;margin:0;text-align:left;cursor:pointer;color:inherit;font:inherit}
+.brand h1{font-size:var(--fs-lg);font-weight:700;margin:0;letter-spacing:-.01em}
+.brand .tagline{font-size:var(--fs-sm);color:var(--muted);margin-top:2px;letter-spacing:0}
+.header-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.badge{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:0 14px;min-height:40px;display:inline-flex;align-items:center;font-family:var(--font-mono);font-size:var(--fs-sm);color:var(--muted);max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.btn{background:transparent;color:var(--text);border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px;min-height:40px;display:inline-flex;align-items:center;justify-content:center;font:inherit;font-size:var(--fs-sm);cursor:pointer;white-space:nowrap;transition:border-color .15s,background-color .15s}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+.danger{color:var(--danger)}
+@media(hover:hover) and (pointer:fine){
+ .btn:hover{border-color:var(--muted)}
+ .primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+ .course:hover .corner{border-color:var(--accent)}
+ .option:hover{border-color:var(--muted)}
+ .brand:hover h1{color:var(--accent)}
+}
+
+.screen{display:none}.screen.active{display:block}
+h2{margin:0 0 6px;font-size:var(--fs-xl);font-weight:700;letter-spacing:-.01em}
+.lead,.status{color:var(--muted);font-size:var(--fs-base);line-height:1.6}
+#lessonStatus{margin-top:14px}
+.course-label{margin:0 0 4px;color:var(--muted);font-family:var(--font-mono);font-size:var(--fs-sm);letter-spacing:.02em}
+.lesson-title{margin:0;font-size:var(--fs-xl);font-weight:700;letter-spacing:-.01em}
+
+.course-grid{display:flex;flex-direction:column;gap:14px;margin-top:18px}
+.course{background:var(--surface);border:1px solid var(--line);padding:22px 24px;display:flex;flex-direction:column;align-items:flex-start;gap:9px;position:relative}
+.corner{position:absolute;width:12px;height:12px;border-color:var(--line);transition:border-color .15s}
+.corner-tl{top:-1px;left:-1px;border-top:2px solid;border-left:2px solid}
+.corner-tr{top:-1px;right:-1px;border-top:2px solid;border-right:2px solid}
+.corner-bl{bottom:-1px;left:-1px;border-bottom:2px solid;border-left:2px solid}
+.corner-br{bottom:-1px;right:-1px;border-bottom:2px solid;border-right:2px solid}
+.fig-label{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--accent);letter-spacing:.04em}
+.dim-line{width:100%;height:1px;margin:2px 0;background:repeating-linear-gradient(90deg,var(--line) 0 6px,transparent 6px 10px)}
+.course h3{margin:0;font-size:var(--fs-course);font-weight:700}
+.course p{margin:0;color:var(--muted);font-size:var(--fs-base);line-height:1.7;max-width:60ch}
+.meta{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--accent);letter-spacing:.02em}
+.course .btn{margin-top:4px}
+
+.lesson-head{display:flex;justify-content:space-between;gap:16px;margin-bottom:16px}
+.lesson-actions{display:flex;gap:8px;flex:0 0 auto}
+.player-wrap{background:#000;border-radius:var(--radius);overflow:hidden;border:1px solid var(--line)}
+#player{width:100%;aspect-ratio:16/9}
+
+.option{display:block;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;margin:8px 0;cursor:pointer;font-size:var(--fs-base);transition:border-color .15s}
+.quiz-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:14px}
+.question{font-weight:700;margin:8px 0 16px;font-size:var(--fs-md)}
+.qnum{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--accent);font-weight:600;letter-spacing:.02em}
+.score{font-family:var(--font-mono);font-size:var(--fs-score);color:var(--accent);font-weight:700;margin:14px 0}
+.score.perfect{color:var(--done)}
+.record-card{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.record-score{font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--accent);background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:10px 18px;white-space:nowrap}
+.note{font-size:var(--fs-xs);color:var(--muted);line-height:1.7;margin-top:20px}
+.result{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:32px 22px;text-align:center}
+
+.warn{background:var(--warn-bg);border:1px solid var(--warn-border);color:var(--warn-text);border-radius:var(--radius);padding:12px 14px;font-size:var(--fs-sm);line-height:1.6;margin-bottom:16px}
+@media(max-width:650px){
+ .app{padding:20px 14px 48px}
+ header{flex-direction:column;align-items:flex-start;gap:14px}
+ .header-actions{width:100%}
+ .badge{max-width:none;flex:1 1 auto}
+ .lesson-head{flex-direction:column}
+ .lesson-actions{width:100%}
+ .lesson-actions .btn{flex:1}
+ .course{padding:18px 16px}
+ .course .btn{width:100%}
+}
+
+.admin-tabs{display:flex;gap:8px;margin:0 0 18px}
+.kpi-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.kpi-card{flex:1;min-width:130px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+.kpi-label{color:var(--muted);font-size:var(--fs-xs)}
+.kpi-value{font-family:var(--font-mono);font-size:24px;font-weight:700;margin-top:4px}
+.tab-active{background:var(--surface-2);border-color:var(--accent);color:var(--accent);font-weight:700}
+.admin-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:14px}
+.admin-card h3{margin:0 0 12px;font-size:var(--fs-md)}
+.field{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+.field label{font-size:var(--fs-sm);color:var(--muted)}
+.field input,.field textarea{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:var(--radius-sm);padding:9px 10px;font:inherit}
+.field textarea{min-height:70px;resize:vertical}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row>*{flex:1}
+.log-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+.log-table th,.log-table td{padding:10px 9px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+.log-table th{color:var(--muted);font-weight:500;font-size:var(--fs-xs);position:sticky;top:0;background:var(--surface)}
+.log-table td{font-family:var(--font-mono)}
+.trend-up{color:var(--done)}
+.trend-down{color:var(--danger)}
+.trend-flat{color:var(--muted)}
+.empty{padding:26px;text-align:center;color:var(--muted);font-size:var(--fs-base)}
+summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"▾";font-size:10px;color:var(--muted);transition:transform .15s}
+details[open]>summary::after{transform:rotate(180deg)}
+.summary-btn{margin-bottom:12px}
+
+#passwordModal,#nameModal{position:fixed;inset:0;background:rgba(10,12,14,.78);display:none;align-items:center;justify-content:center;z-index:9999;padding:18px}
+#passwordModal.show,#nameModal.show{display:flex}
+.password-box{width:min(380px,100%);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:26px;animation:pop .18s ease}
+@keyframes pop{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.password-box{animation:none}}
+.password-box h3{margin:0 0 8px;font-size:var(--fs-md)}
+.password-box p{color:var(--muted);font-size:var(--fs-sm);line-height:1.6}
+.password-box input{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:var(--radius-sm);padding:10px;font-size:16px;margin:8px 0}
+.password-error{color:var(--danger);font-size:var(--fs-sm);min-height:18px}
+</style>
+</head>
+<body>
+<div id="passwordModal">
+  <div class="password-box">
+    <h3>管理者ログイン</h3>
+    <p>管理者アカウントのメールアドレスとパスワードを入力してください。</p>
+    <input id="adminEmail" type="email" placeholder="メールアドレス" aria-label="メールアドレス" autocomplete="username">
+    <input id="adminPasswordInput" type="password" placeholder="パスワード" aria-label="パスワード" autocomplete="current-password">
+    <div id="passwordError" class="password-error" aria-live="assertive"></div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn" id="passwordCancel">キャンセル</button>
+      <button class="btn primary" id="passwordSubmit">ログイン</button>
+    </div>
+  </div>
+</div>
+<div id="nameModal">
+  <div class="password-box">
+    <div id="nameStep1">
+      <h3>ようこそ</h3>
+      <p>学習を始める前に、お名前を入力してください。入力した名前ごとに、管理画面で受講記録を確認できます。後から変更はできませんので、正しい氏名を入力してください。</p>
+      <input id="nameInput" type="text" placeholder="お名前（例：山田太郎）" aria-label="お名前">
+      <div id="nameError" class="password-error" aria-live="assertive"></div>
+      <button class="btn primary" id="nameNext" style="width:100%">次へ</button>
+      <button class="btn" id="nameAdminLink" style="width:100%;margin-top:8px">管理者の方はこちら</button>
+    </div>
+    <div id="nameStep2" hidden>
+      <h3>この名前でよろしいですか？</h3>
+      <p>後から変更できません。誤字がないか、よく確認してください。</p>
+      <p id="nameConfirmDisplay" style="font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--accent);text-align:center;margin:18px 0"></p>
+      <button class="btn primary" id="nameConfirmOk" style="width:100%">はい、これで始める</button>
+      <button class="btn" id="nameConfirmBack" style="width:100%;margin-top:8px">訂正する</button>
+    </div>
+  </div>
+</div>
+<div class="app">
+<header><button class="brand" id="brandBtn"><h1>動画教材</h1><div class="tagline">工程動画で学ぶ、現場のスキル</div></button><div class="header-actions"><span class="badge" id="learnerBtn">受講者: ゲスト</span><button class="btn" id="myLogBtn">自分の記録</button><button class="btn" id="adminBtn">管理画面</button></div></header>
+
+<section id="home" class="screen active">
+<div id="configWarning" class="warn" hidden aria-live="polite">Supabaseの接続設定がまだ行われていません。index.html内の SUPABASE_URL と SUPABASE_ANON_KEY を書き換えてください。</div>
+<div id="anonWarning" class="warn" hidden aria-live="polite"></div>
+<h2>受講するコースを選ぶ</h2><p class="lead">選んだコースの動画を順番に視聴し、最後に確認クイズに答えます。</p><div id="courses" class="course-grid"><p class="lead">読み込み中…</p></div><p class="note">動画はYouTubeから再生します。受講状況とクイズ結果は自動的に記録され、管理者がまとめて確認できます。</p></section>
+
+<section id="lesson" class="screen">
+<div class="lesson-head"><div><p id="courseTitle" class="course-label"></p><h2 id="lessonTitle" class="lesson-title"></h2></div><div class="lesson-actions"><button id="prevLesson" class="btn">前に戻る</button><button id="skipLesson" class="btn">この動画をスキップ</button></div></div>
+<div class="player-wrap"><div id="player"></div></div><div id="lessonStatus" class="status" aria-live="polite"></div>
+</section>
+
+<section id="admin" class="screen">
+  <div class="lesson-head">
+    <div><h2>管理画面</h2><p class="lead">教材の編集と、全受講者の記録をまとめて確認できます。</p></div>
+    <div class="lesson-actions">
+      <button id="adminBack" class="btn primary">受講者モードに切り替える</button>
+    </div>
+  </div>
+  <div class="admin-tabs">
+    <button class="btn tab-active" id="editTab">教材を編集</button>
+    <button class="btn" id="logTab">受講記録</button>
+  </div>
+  <div id="editorPanel"></div>
+  <div id="logPanel" hidden></div>
+</section>
+
+<section id="quiz" class="screen"><h2 id="quizTitle"></h2><p class="lead">動画の視聴が完了しました。クイズに回答してください。</p><div id="quizForm"></div><button id="grade" class="btn primary">採点する</button></section>
+
+<section id="result" class="screen"><div class="result"><h2 id="resultTitle" aria-live="polite">受講完了</h2><div id="score" class="score"></div><p id="message" aria-live="polite"></p><button id="back" class="btn primary">コース一覧へ</button></div></section>
+
+<section id="mylog" class="screen">
+  <div class="lesson-head"><div><h2>自分の受講記録</h2><p class="lead">コースごとに、最新の受講結果をまとめています。他の受講者の記録は表示されません。</p></div><button id="myLogBack" class="btn">コース一覧</button></div>
+  <div id="myLogPanel"></div>
+</section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ===== Supabase 接続設定（★ここを書き換えてください） ===== */
+const SUPABASE_URL = "https://xugsfjaskohtdnyirdrt.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_sEOyIf34tzmf5MCKJmu8VA_jC_aQYdu";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+function isConfigured(){return !SUPABASE_URL.includes("YOUR-") && !SUPABASE_ANON_KEY.includes("YOUR-")}
+
+/* ===== 状態 ===== */
+const LEARNER_KEY="videoLessonLearner_v1",LOCAL_CACHE_KEY="videoLessonLocalCache_v1",NAME_SET_KEY="videoLessonNameSet_v1",ANON_SESSION_KEY="videoLessonAnonSession_v1";
+let COURSES=[];
+let course=null,lessonIndex=0,player=null,pendingId=null,playerReady=false;
+let learner=localStorage.getItem(LEARNER_KEY)||"ゲスト";
+let adminSession=null;
+
+const $=id=>document.getElementById(id);
+function load(k,d){try{let v=JSON.parse(localStorage.getItem(k));return v??structuredClone(d)}catch(e){return structuredClone(d)}}
+function put(k,v){localStorage.setItem(k,JSON.stringify(v))}
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function show(id){document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));$(id).classList.add("active")}
+function yt(url){try{let u=new URL(url);if(u.hostname.includes("youtu.be"))return u.pathname.slice(1).split("/")[0];if(u.searchParams.get("v"))return u.searchParams.get("v");let p=u.pathname.split("/"),i=p.indexOf("embed");return i>=0?p[i+1]:""}catch(e){return""}}
+function updateLearnerBtn(){$("learnerBtn").textContent="受講者: "+learner}
+
+/* ===== 受講者側のローカル表示キャッシュ（自分のブラウザでの見た目用。記録の正本はSupabase側） ===== */
+function ensureLocalProgress(name,courseId){let c=load(LOCAL_CACHE_KEY,{});c[name]??={};c[name][courseId]??={completions:0};put(LOCAL_CACHE_KEY,c);return c[name][courseId]}
+function saveLocalProgress(name,courseId,rec){let c=load(LOCAL_CACHE_KEY,{});c[name]??={};c[name][courseId]=rec;put(LOCAL_CACHE_KEY,c)}
+
+/* ===== コース読み込み（Supabase） ===== */
+async function loadCourses(){
+ if(!isConfigured()){$("configWarning").hidden=false;COURSES=[];return}
+ $("configWarning").hidden=true;
+ const{data,error}=await sb.from("courses").select("*").order("sort_order",{ascending:true}).order("created_at",{ascending:true});
+ if(error){console.error(error);$("courses").innerHTML="<p class='lead'>コースの読み込みに失敗しました。しばらくしてから再度お試しください。</p>";COURSES=[];return}
+ COURSES=(data||[]).map(r=>({id:r.id,title:r.title,description:r.description||"",lessons:r.lessons||[],quiz:r.quiz||[],sort_order:r.sort_order||0}))
+}
+/* ===== 視聴率（「動画視聴完了」ログの件数から算出。新しい保存は不要） ===== */
+function watchedPercentMap(logs){
+ // "受講者||コース名" -> 視聴済みの動画タイトルのSet
+ let watched={};
+ logs.forEach(r=>{(watched[r.learner+"||"+r.course]??=new Set()).add(r.detail)});
+ let result={};
+ Object.keys(watched).forEach(key=>{
+  let courseTitle=key.split("||")[1],c=COURSES.find(c=>c.title===courseTitle);
+  result[key]=c&&c.lessons.length?Math.round(watched[key].size/c.lessons.length*100):0;
+ });
+ return result;
+}
+
+async function renderCourses(){
+ const box=$("courses");box.innerHTML="<p class='lead'>読み込み中…</p>";
+ await loadCourses();
+ const localCache=load(LOCAL_CACHE_KEY,{});
+ let watchedPct={},lastStartByTitle={},lastSubmitByCourseId={};
+ if(isConfigured()){
+  const[{data:startLogs,error:e1},{data:watchLogs,error:e2},{data:myAttempts,error:e3}]=await Promise.all([
+   sb.from("logs").select("course,created_at").eq("type","受講開始"),
+   sb.from("logs").select("learner,course,detail").eq("type","動画視聴完了"),
+   sb.from("quiz_attempts").select("course_id,created_at")
+  ]);
+  if(e1)console.error(e1);else (startLogs||[]).forEach(r=>{
+   let t=new Date(r.created_at).getTime();
+   if(!lastStartByTitle[r.course]||t>lastStartByTitle[r.course])lastStartByTitle[r.course]=t;
+  });
+  if(e2)console.error(e2);else watchedPct=watchedPercentMap(watchLogs||[]);
+  if(e3)console.error(e3);else (myAttempts||[]).forEach(a=>{
+   let t=new Date(a.created_at).getTime();
+   if(!lastSubmitByCourseId[a.course_id]||t>lastSubmitByCourseId[a.course_id])lastSubmitByCourseId[a.course_id]=t;
+  });
+ }
+ box.innerHTML="";
+ let visibleCourses=COURSES.filter(c=>c.lessons.length>0);
+ if(!visibleCourses.length){box.innerHTML="<p class='lead'>コースがまだありません。管理画面から追加してください。</p>";return}
+ visibleCourses.forEach((c,i)=>{
+  let prog=localCache[learner]?.[c.id],completions=prog?.completions||0,pct=watchedPct[learner+"||"+c.title]||0;
+  let lastStart=lastStartByTitle[c.title],lastSubmit=lastSubmitByCourseId[c.id];
+  let inProgress=!!lastStart&&(!lastSubmit||lastStart>lastSubmit);
+  let x=document.createElement("div");x.className="course";
+  x.innerHTML=`<span class="corner corner-tl"></span><span class="corner corner-tr"></span><span class="corner corner-bl"></span><span class="corner corner-br"></span>
+   <div class="fig-label">FIG. ${String(i+1).padStart(2,"0")}</div>
+   <h3>${esc(c.title)}</h3><p>${esc(c.description)}</p><div class="meta">${c.lessons.length}本の動画 ・ ${c.quiz.length}問のクイズ${completions>0?` ・ ${completions}回受講済み`:""}</div>${pct>0?`<div class="meta">動画を${pct}%視聴済み</div>`:""}
+   <div class="dim-line"></div>
+   <button class="btn primary">${inProgress?"再開する":"受講する"}</button>`;
+  x.querySelector("button").onclick=()=>start(c);box.appendChild(x)
+ })
+}
+async function start(c){
+ course=c;lessonIndex=0;
+ addLog("受講開始",c.title,"");
+ show("lesson");
+ $("courseTitle").textContent=c.title;$("lessonTitle").textContent="読み込み中…";
+ let resumeIndex=0,allWatched=false;
+ if(isConfigured()){
+  try{
+   const{data:watchLogs,error}=await sb.from("logs").select("detail").eq("type","動画視聴完了").eq("course",c.title);
+   if(!error&&watchLogs){
+    let watchedTitles=new Set(watchLogs.map(r=>r.detail));
+    let firstUnwatched=c.lessons.findIndex(l=>!watchedTitles.has(l.title));
+    if(firstUnwatched===-1)allWatched=true;else resumeIndex=firstUnwatched;
+   }
+  }catch(e){console.error(e)}
+ }
+ if(course!==c)return; // その間に別画面へ移動していたら何もしない
+ if(allWatched){showQuiz();return}
+ loadLesson(resumeIndex);
+}
+function loadLesson(i){
+ lessonIndex=i;let l=course.lessons[i],id=yt(l.youtube);
+ $("courseTitle").textContent=course.title;$("lessonTitle").textContent=l.title;updateLessonControls();
+ if(!id){$("player").innerHTML="<div style='padding:40px;text-align:center'>YouTube URLが正しくありません。動画をスキップして次へ進むことができます。</div>";return}
+ addLog("動画開始",course.title,l.title);
+ try{
+  if(player&&playerReady&&player.loadVideoById){player.loadVideoById(id);return}
+  if(window.YT?.Player)createPlayer(id);else pendingId=id
+ }catch(err){
+  console.error(err);
+  $("player").innerHTML="<div style='padding:40px;text-align:center'>動画プレーヤーの読み込みに失敗しました。通信環境をご確認のうえ、再度お試しいただくか、この動画をスキップしてください。</div>";
+ }
+}
+function createPlayer(id){
+ playerReady=false;
+ try{
+  player=new YT.Player("player",{videoId:id,playerVars:{rel:0,playsinline:1,origin:location.origin},
+   events:{
+    onReady:()=>{playerReady=true},
+    onStateChange:e=>{
+     if(e.data===YT.PlayerState.ENDED)ended()
+    },
+    onError:e=>{
+     const msgs={2:"動画IDのパラメータが正しくありません。",5:"HTML5プレーヤーでこの動画を再生できません。",100:"動画が見つからないか、削除されています。",101:"投稿者の設定によりこの動画は埋め込み再生できません。",150:"投稿者の設定によりこの動画は埋め込み再生できません。"};
+     $("lessonStatus").textContent=(msgs[e.data]||"動画の再生中にエラーが発生しました。")+"　「この動画をスキップ」で次に進めます。";
+     addLog("動画再生エラー",course.title,`${course.lessons[lessonIndex].title}（code:${e.data}）`);
+    }
+   }})
+ }catch(err){
+  console.error(err);
+  $("player").innerHTML="<div style='padding:40px;text-align:center'>動画プレーヤーを初期化できませんでした。この動画をスキップして次へ進むことができます。</div>";
+ }
+}
+function ended(){
+ addLog("動画視聴完了",course.title,course.lessons[lessonIndex].title);updateLessonControls();
+ if(lessonIndex<course.lessons.length-1){loadLesson(lessonIndex+1)}else setTimeout(showQuiz,400)
+}
+function skipLesson(){
+ if(!course)return;
+ addLog("動画スキップ",course.title,course.lessons[lessonIndex].title);
+ if(lessonIndex<course.lessons.length-1){loadLesson(lessonIndex+1)}else showQuiz()
+}
+function updateLessonControls(){
+ $("lessonStatus").textContent="";
+ $("prevLesson").disabled=lessonIndex===0
+}
+function showQuiz(){
+ $("quizTitle").textContent=course.title+"｜確認クイズ";let f=$("quizForm");f.innerHTML="";
+ course.quiz.forEach((q,n)=>{let c=document.createElement("div");c.className="quiz-card";c.innerHTML=`<div class="qnum">Q${n+1}</div><div class="question">${esc(q.question)}</div>`;
+ q.choices.forEach((v,i)=>{let l=document.createElement("label");l.className="option";l.innerHTML=`<input type="radio" name="q${n}" value="${i}"> ${esc(v)}`;c.appendChild(l)});f.appendChild(c)});
+ show("quiz")
+}
+/* ===== 満点クイズのお祝い演出 ===== */
+function launchConfetti(){
+ if(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+ const colors=["#F2A73B","#4FC9A6","#7C93B8","#ECEEF1"];
+ const container=document.createElement("div");
+ container.style.cssText="position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:9998";
+ document.body.appendChild(container);
+ for(let i=0;i<70;i++){
+  const p=document.createElement("div");
+  const size=5+Math.random()*6;
+  p.style.cssText=`position:absolute;top:-20px;left:${Math.random()*100}%;width:${size}px;height:${size*0.4}px;background:${colors[i%colors.length]};border-radius:2px`;
+  const duration=2200+Math.random()*1400;
+  const delay=Math.random()*400;
+  const drift=(Math.random()-0.5)*240;
+  p.animate([
+   {transform:"translate(0,0) rotate(0deg)",offset:0,opacity:1},
+   {transform:`translate(${drift}px,100vh) rotate(${360+Math.random()*360}deg)`,offset:1,opacity:.85}
+  ],{duration,delay,easing:"cubic-bezier(.25,.46,.45,.94)",fill:"forwards"});
+  container.appendChild(p);
+ }
+ setTimeout(()=>container.remove(),4200);
+}
+
+function animateScoreCount(el,target,total,suffix){
+ if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches){el.textContent=`${target} / ${total} ${suffix}`;return}
+ let start=null,duration=650;
+ function step(ts){
+  if(!start)start=ts;
+  let progress=Math.min((ts-start)/duration,1);
+  el.textContent=`${Math.round(progress*target)} / ${total} ${suffix}`;
+  if(progress<1)requestAnimationFrame(step)
+ }
+ requestAnimationFrame(step);
+}
+$("grade").onclick=async()=>{
+ let s=0;course.quiz.forEach((q,i)=>{let x=document.querySelector(`input[name=q${i}]:checked`);if(x&&+x.value===q.correct)s++});
+ let gradeBtn=$("grade");
+ gradeBtn.disabled=true;gradeBtn.textContent="採点中…";
+ const{error}=await sb.rpc("record_quiz_result",{p_learner:learner,p_course_id:course.id,p_score:s,p_total:course.quiz.length});
+ gradeBtn.disabled=false;gradeBtn.textContent="採点する";
+ if(error){
+  console.error(error);
+  alert("採点結果の送信に失敗しました。通信環境をご確認のうえ、もう一度「採点する」を押してください。");
+  return
+ }
+ let rec=ensureLocalProgress(learner,course.id);rec.completions=(rec.completions||0)+1;saveLocalProgress(learner,course.id,rec);
+ addLog("クイズ完了",course.title,`${s}/${course.quiz.length}問`);
+ let isPerfect=course.quiz.length>0&&s===course.quiz.length;
+ $("resultTitle").textContent=isPerfect?"満点です、おめでとうございます！":"受講完了";
+ $("score").classList.toggle("perfect",isPerfect);
+ $("message").textContent=`正答率 ${course.quiz.length?Math.round(s/course.quiz.length*100):0}%`;
+ show("result");
+ animateScoreCount($("score"),s,course.quiz.length,"問");
+ if(isPerfect)launchConfetti();
+};
+function fireRpc(promise){promise.then(({error})=>{if(error)console.error(error)})}
+function addLog(type,courseTitle,detail){
+ fireRpc(sb.rpc("insert_log",{p_learner:learner,p_type:type,p_course:courseTitle,p_detail:detail}));
+}
+function home(){
+ if(player?.stopVideo){try{player.stopVideo()}catch(e){}}
+ course=null;show("home");renderCourses()
+}
+
+/* ===== 管理画面：教材編集 ===== */
+async function saveCourse(c){
+ const{error}=await sb.from("courses").upsert({id:c.id,title:c.title,description:c.description,lessons:c.lessons,quiz:c.quiz,sort_order:c.sort_order||0,updated_at:new Date().toISOString()});
+ if(error){console.error(error);alert("保存に失敗しました："+error.message)}
+}
+let saveTimers={};
+function debouncedSaveCourse(c){clearTimeout(saveTimers[c.id]);saveTimers[c.id]=setTimeout(()=>saveCourse(c),500)}
+
+function renderEditor(){
+ $("logPanel").hidden=true;$("editorPanel").hidden=false;$("editTab").className="btn tab-active";$("logTab").className="btn";
+ let b=$("editorPanel");b.innerHTML="";
+ COURSES.forEach((c,ci)=>{
+  let card=document.createElement("div");card.className="admin-card";
+  card.innerHTML=`<div class="row"><strong style="flex:1">コース ${ci+1}</strong><button class="btn danger deleteCourse">コースを削除</button></div>
+  ${c.lessons.length===0?`<p class="lead" style="color:var(--warn-text);margin:6px 0">動画がまだないため、受講者には表示されません。</p>`:""}
+  <div class="field"><label for="ct_${c.id}">コース名</label><input id="ct_${c.id}" class="ct" value="${esc(c.title)}"></div>
+  <div class="field"><label for="cd_${c.id}">説明</label><textarea id="cd_${c.id}" class="cd">${esc(c.description)}</textarea></div>
+  <div id="lessons_${ci}"></div><button class="btn addLesson">＋ 動画を追加</button>
+  <div id="quiz_${ci}" style="margin-top:14px"></div><button class="btn addQuiz">＋ クイズ問題を追加</button>`;
+  b.appendChild(card);
+  card.querySelector(".ct").oninput=e=>{c.title=e.target.value;debouncedSaveCourse(c)};
+  card.querySelector(".cd").oninput=e=>{c.description=e.target.value;debouncedSaveCourse(c)};
+  let lp=card.querySelector(`#lessons_${ci}`);c.lessons.forEach((l,i)=>lessonEditor(lp,c,l,i));
+  card.querySelector(".addLesson").onclick=()=>{c.lessons.push({title:"新しい動画",youtube:""});saveCourse(c);renderEditor()};
+  let qp=card.querySelector(`#quiz_${ci}`);c.quiz.forEach((q,i)=>quizEditor(qp,c,q,i));
+  card.querySelector(".addQuiz").onclick=()=>{c.quiz.push({question:"新しい問題",choices:["選択肢1","選択肢2"],correct:0});saveCourse(c);renderEditor()};
+  card.querySelector(".deleteCourse").onclick=async()=>{
+   if(!confirm("このコースを削除しますか？"))return;
+   const{error}=await sb.from("courses").delete().eq("id",c.id);
+   if(error){alert("削除に失敗しました："+error.message);return}
+   COURSES.splice(ci,1);renderEditor();renderCourses()
+  }
+ })
+ let add=document.createElement("button");add.className="btn primary";add.textContent="＋ 新しいコース";
+ add.onclick=async()=>{
+  let nc={id:"course_"+Date.now(),title:"新しいコース",description:"",lessons:[],quiz:[],sort_order:COURSES.length};
+  const{error}=await sb.from("courses").insert(nc);
+  if(error){alert("作成に失敗しました："+error.message);return}
+  COURSES.push(nc);renderEditor()
+ };
+ b.appendChild(add)
+}
+function lessonEditor(parent,c,l,i){
+ let d=document.createElement("div");d.className="admin-card";d.innerHTML=`<div class="row"><strong>動画 ${i+1}</strong><button class="btn danger del">削除</button></div>
+ <div class="field"><label for="lt_${c.id}_${i}">動画タイトル</label><input id="lt_${c.id}_${i}" class="lt" value="${esc(l.title)}"></div><div class="field"><label for="lu_${c.id}_${i}">YouTube URL</label><input id="lu_${c.id}_${i}" class="lu" value="${esc(l.youtube)}" placeholder="https://www.youtube.com/watch?v=..."></div>`;
+ parent.appendChild(d);
+ d.querySelector(".lt").oninput=e=>{l.title=e.target.value;debouncedSaveCourse(c)};
+ d.querySelector(".lu").oninput=e=>{l.youtube=e.target.value;debouncedSaveCourse(c)};
+ d.querySelector(".del").onclick=()=>{if(!confirm("この動画を削除しますか？"))return;c.lessons.splice(i,1);saveCourse(c);renderEditor()}
+}
+function quizEditor(parent,c,q,i){
+ let d=document.createElement("div");d.className="admin-card";d.innerHTML=`<div class="row"><strong>クイズ ${i+1}</strong><button class="btn danger del">削除</button></div><div class="field"><label for="qt_${c.id}_${i}">問題文</label><textarea id="qt_${c.id}_${i}" class="qt">${esc(q.question)}</textarea></div>`;
+ q.choices.forEach((v,j)=>{
+  let r=document.createElement("div");r.className="field";
+  r.innerHTML=`<label for="qc_${c.id}_${i}_${j}">選択肢 ${j+1} ${q.correct===j?"（正解）":""}</label><div class="row"><input id="qc_${c.id}_${i}_${j}" value="${esc(v)}"><label style="flex:0 0 auto"><input type="radio" name="correct_${c.id}_${i}" ${q.correct===j?"checked":""}> 正解</label>${q.choices.length>2?`<button class="btn danger delChoice" style="flex:0 0 auto">削除</button>`:""}</div>`;
+  d.appendChild(r);
+  let inp=r.querySelector("input[type=text],input:not([type=radio])");
+  inp.oninput=e=>{q.choices[j]=e.target.value;debouncedSaveCourse(c)};
+  r.querySelector("input[type=radio]").onchange=()=>{q.correct=j;saveCourse(c);renderEditor()};
+  let delChoice=r.querySelector(".delChoice");
+  if(delChoice)delChoice.onclick=()=>{
+   if(!confirm("この選択肢を削除しますか？"))return;
+   q.choices.splice(j,1);
+   if(q.correct===j)q.correct=0;else if(q.correct>j)q.correct--;
+   saveCourse(c);renderEditor()
+  };
+ });
+ if(q.choices.length<4){
+  let addChoice=document.createElement("button");addChoice.className="btn";addChoice.textContent="＋ 選択肢を追加（最大4つ）";
+  addChoice.onclick=()=>{q.choices.push("選択肢"+(q.choices.length+1));saveCourse(c);renderEditor()};
+  d.appendChild(addChoice);
+ }
+ parent.appendChild(d);
+ d.querySelector(".qt").oninput=e=>{q.question=e.target.value;debouncedSaveCourse(c)};
+ d.querySelector(".del").onclick=()=>{if(!confirm("この問題を削除しますか？"))return;c.quiz.splice(i,1);saveCourse(c);renderEditor()}
+}
+
+/* ===== Excel出力（xlsxライブラリは管理画面を開いたときに読み込む。学習者は読み込まない） ===== */
+let xlsxLoadPromise=null;
+function ensureXlsxLoaded(){
+ if(window.XLSX)return Promise.resolve();
+ if(!xlsxLoadPromise){
+  xlsxLoadPromise=new Promise((resolve,reject)=>{
+   let s=document.createElement("script");
+   s.src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+   s.onload=()=>resolve();
+   s.onerror=()=>{xlsxLoadPromise=null;reject(new Error("xlsx load failed"))};
+   document.head.appendChild(s);
+  });
+ }
+ return xlsxLoadPromise;
+}
+async function exportToExcel(filename,sheetName,headers,rows){
+ try{await ensureXlsxLoaded()}catch(e){
+  console.error(e);
+  alert("Excel出力ライブラリの読み込みに失敗しました。通信環境をご確認のうえ、再度お試しください。");
+  return
+ }
+ let ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
+ let wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,ws,sheetName);
+ XLSX.writeFile(wb,filename);
+}
+
+/* ===== 管理画面：受講記録（Supabaseから直接取得。ログイン中のみ閲覧可） ===== */
+async function renderLogs(){
+ $("editorPanel").hidden=true;$("logPanel").hidden=false;$("editTab").className="btn";$("logTab").className="btn tab-active";
+ let b=$("logPanel");b.innerHTML="<p class='lead'>読み込み中…</p>";
+
+ const[{data:attempts,error:e1},{data:watchLogs,error:e2}]=await Promise.all([
+  sb.from("quiz_attempts").select("*").order("created_at",{ascending:true}),
+  sb.from("logs").select("learner,course,detail").eq("type","動画視聴完了")
+ ]);
+ if(e1||e2){
+  console.error(e1,e2);
+  b.innerHTML="<div class='admin-card'>読み込みに失敗しました。管理者としてログインできているかご確認ください。</div>";
+  return
+ }
+ let watchedPct=watchedPercentMap(watchLogs||[]);
+
+ let totalLearners=new Set((attempts||[]).map(a=>a.learner)).size;
+ let totalSubmissions=(attempts||[]).length;
+ let rateByCourseId={};
+ (attempts||[]).forEach(a=>{(rateByCourseId[a.course_id]??=[]).push(a.total?a.score/a.total*100:0)});
+ let courseRateRows=Object.keys(rateByCourseId).map(cid=>{
+  let c=COURSES.find(c=>c.id===cid),vals=rateByCourseId[cid];
+  return{title:c?c.title:cid,count:vals.length,avg:Math.round(vals.reduce((s,v)=>s+v,0)/vals.length)};
+ }).sort((a,b2)=>a.title.localeCompare(b2.title,"ja"));
+ b.innerHTML=`<div class="kpi-row">
+   <div class="kpi-card"><div class="kpi-label">受講者数</div><div class="kpi-value">${totalLearners}</div></div>
+   <div class="kpi-card"><div class="kpi-label">総提出回数</div><div class="kpi-value">${totalSubmissions}</div></div>
+  </div>
+  ${courseRateRows.length?`<div class="admin-card" style="overflow:auto"><h3>コースごとの平均正答率</h3><table class="log-table"><thead><tr><th>コース</th><th>提出回数</th><th>平均正答率</th></tr></thead><tbody>${courseRateRows.map(r=>`<tr><td>${esc(r.title)}</td><td>${r.count}回</td><td>${r.avg}%</td></tr>`).join("")}</tbody></table></div>`:""}`;
+
+ // 提出のたびに1行たまる履歴（quiz_attempts）から、受講者・コースごとの「n回目」を割り出す
+ let attemptCounters={},rows=[];
+ (attempts||[]).forEach(a=>{
+  let key=a.learner+"||"+a.course_id;attemptCounters[key]=(attemptCounters[key]||0)+1;
+  let c=COURSES.find(c=>c.id===a.course_id);
+  rows.push({name:a.learner,course:c?c.title:a.course_id,attempt:attemptCounters[key],
+   at:a.created_at,score:a.score,total:a.total,rate:a.total?Math.round(a.score/a.total*100)+"%":"—"});
+ });
+
+ if(!rows.length){b.innerHTML+=`<div class="empty">受講記録はありません。</div>`}
+ else{
+  rows.sort((a,b2)=>a.course.localeCompare(b2.course,"ja")||a.name.localeCompare(b2.name,"ja")||a.attempt-b2.attempt);
+  let byCourse={};
+  rows.forEach(x=>{(byCourse[x.course]??=[]).push(x)});
+  let courseNames=Object.keys(byCourse).sort((a,b2)=>a.localeCompare(b2,"ja"));
+
+  let head=document.createElement("div");head.className="admin-card";
+  head.innerHTML=`<div class="row" style="justify-content:space-between;align-items:center"><h3 style="margin:0">受講履歴</h3><button class="btn" id="exportSummaryBtn">Excel出力</button></div>`;
+  b.appendChild(head);
+
+  courseNames.forEach(courseName=>{
+   let list=byCourse[courseName].slice().sort((a,b2)=>new Date(b2.at)-new Date(a.at));
+
+   // 受講者ごとに「最新スコア・回数・傾向」をまとめた要約行を作る
+   let byLearner={};
+   byCourse[courseName].forEach(x=>{(byLearner[x.name]??=[]).push(x)});
+   let summaryRows=Object.keys(byLearner).sort((a,b2)=>a.localeCompare(b2,"ja")).map(name=>{
+    let sorted=byLearner[name].slice().sort((a,b2)=>a.attempt-b2.attempt);
+    let latest=sorted[sorted.length-1],prev=sorted.length>1?sorted[sorted.length-2]:null;
+    let latestRate=latest.total?Math.round(latest.score/latest.total*100):0;
+    let trendText="初回",trendClass="";
+    if(prev){
+     let prevRate=prev.total?Math.round(prev.score/prev.total*100):0;
+     if(latestRate>prevRate){trendText="↑ 上昇";trendClass="trend-up"}
+     else if(latestRate<prevRate){trendText="↓ 下降";trendClass="trend-down"}
+     else{trendText="→ 横ばい";trendClass="trend-flat"}
+    }
+    return{name,latestScore:`${latest.score}/${latest.total}`,latestRate:latest.rate,attempts:sorted.length,trendText,trendClass,watched:watchedPct[name+"||"+courseName]||0};
+   });
+
+   let t=document.createElement("div");t.className="admin-card";t.style.overflow="auto";
+   t.innerHTML=`<h3>${esc(courseName)}</h3>
+    <table class="log-table"><thead><tr><th>受講者</th><th>回数</th><th>視聴済み</th><th>得点</th><th>正答率</th><th>傾向</th></tr></thead><tbody>${summaryRows.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.attempts}回</td><td>${x.watched}%</td><td>${esc(x.latestScore)}</td><td>${esc(x.latestRate)}</td><td class="${x.trendClass}">${esc(x.trendText)}</td></tr>`).join("")}</tbody></table>
+    <details style="margin-top:14px"><summary class="btn summary-btn">すべての受講履歴を見る</summary>
+     <div style="overflow:auto;max-height:420px"><table class="log-table"><thead><tr><th>受講者</th><th>回数</th><th>提出日時</th><th>得点</th><th>正答率</th></tr></thead><tbody>${list.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.attempt}回目</td><td>${esc(new Date(x.at).toLocaleString("ja-JP"))}</td><td>${x.score}/${x.total}</td><td>${esc(x.rate)}</td></tr>`).join("")}</tbody></table></div>
+    </details>`;
+   b.appendChild(t);
+  });
+
+  $("exportSummaryBtn").onclick=()=>{
+   let data=rows.map(x=>[x.course,x.name,x.attempt,new Date(x.at).toLocaleString("ja-JP"),`${x.score} / ${x.total}`,x.rate]);
+   exportToExcel(`受講履歴_${new Date().toISOString().slice(0,10)}.xlsx`,"受講履歴",
+    ["コース","受講者","回数","提出日時","クイズ結果","正答率"],data);
+  };
+ }
+}
+
+/* ===== 受講者：自分の記録（クイズ提出ごと。RLSにより自分の分だけ返ってくる） ===== */
+async function openMyLog(){
+ show("mylog");
+ let panel=$("myLogPanel");panel.innerHTML="<p class='lead'>読み込み中…</p>";
+ if(!isConfigured()){panel.innerHTML="<div class='empty'>Supabaseの接続設定が完了していません。</div>";return}
+
+ const{data:attempts,error}=await sb.from("quiz_attempts").select("*").order("created_at",{ascending:true});
+ if(error){
+  console.error(error);
+  panel.innerHTML="<div class='admin-card'>読み込みに失敗しました。通信環境をご確認のうえ再度お試しください。</div>";
+  return
+ }
+ if(!attempts||!attempts.length){panel.innerHTML="<div class='empty'>まだ完了した記録がありません。動画を最後まで視聴し、クイズを提出すると、ここに記録が表示されます。</div>";return}
+
+ let counters={},rows=[];
+ attempts.forEach(a=>{
+  counters[a.course_id]=(counters[a.course_id]||0)+1;
+  let c=COURSES.find(c=>c.id===a.course_id);
+  rows.push({course:c?c.title:a.course_id,attempt:counters[a.course_id],at:a.created_at,
+   score:a.score,total:a.total,rate:a.total?Math.round(a.score/a.total*100)+"%":"—"});
+ });
+
+ let byCourse={};
+ rows.forEach(x=>{(byCourse[x.course]??=[]).push(x)});
+ let courseNames=Object.keys(byCourse).sort((a,b)=>a.localeCompare(b,"ja"));
+
+ // コースごとに完了カードを1枚表示（最新の結果を大きく表示。複数回受講していれば回数も添える）
+ let courseCardsHtml=courseNames.map(name=>{
+  let sorted=byCourse[name].slice().sort((a,b)=>new Date(b.at)-new Date(a.at));
+  let latest=sorted[0],isPerfect=latest.total>0&&latest.score===latest.total;
+  return `<div class="admin-card record-card">
+    <div>
+     <h3>${esc(name)}</h3>
+     <p class="lead" style="margin:0">${sorted.length>1?`${sorted.length}回受講　・　`:""}正答率 ${esc(latest.rate)}</p>
+    </div>
+    <div class="record-score">${isPerfect?"満点":`${latest.score}/${latest.total}`}</div>
+   </div>`;
+ }).join("");
+
+ let allRowsSorted=rows.slice().sort((x,y)=>new Date(y.at)-new Date(x.at));
+ let historyTableHtml=`<div class="admin-card" style="overflow:auto;max-height:420px"><table class="log-table"><thead><tr><th>コース</th><th>回数</th><th>提出日時</th><th>得点</th><th>正答率</th></tr></thead><tbody>${allRowsSorted.map(x=>`<tr><td>${esc(x.course)}</td><td>${x.attempt}回目</td><td>${esc(new Date(x.at).toLocaleString("ja-JP"))}</td><td>${x.score}/${x.total}</td><td>${esc(x.rate)}</td></tr>`).join("")}</tbody></table></div>`;
+
+ panel.innerHTML=`
+  ${courseCardsHtml}
+  <details><summary class="btn summary-btn">すべての受講履歴を見る</summary>${historyTableHtml}</details>`;
+}
+
+/* ===== 受講者名の入力（初回のみ必須。誤字防止のため確認画面を挟む） ===== */
+function needsNamePrompt(){return !localStorage.getItem(NAME_SET_KEY)}
+function showNameModal(){
+ $("nameInput").value=learner==="ゲスト"?"":learner;
+ $("nameError").textContent="";
+ $("nameStep1").hidden=false;$("nameStep2").hidden=true;
+ $("nameModal").classList.add("show");
+ setTimeout(()=>$("nameInput").focus(),50);
+}
+function goToNameConfirm(){
+ let n=$("nameInput").value.trim();
+ if(!n){$("nameError").textContent="お名前を入力してください。";return}
+ $("nameConfirmDisplay").textContent=n;
+ $("nameStep1").hidden=true;$("nameStep2").hidden=false;
+ setTimeout(()=>$("nameConfirmOk").focus(),50);
+}
+function backToNameEdit(){
+ $("nameStep1").hidden=false;$("nameStep2").hidden=true;
+ setTimeout(()=>$("nameInput").focus(),50);
+}
+function confirmName(){
+ let n=$("nameInput").value.trim();
+ if(!n){backToNameEdit();return}
+ learner=n;localStorage.setItem(LEARNER_KEY,learner);localStorage.setItem(NAME_SET_KEY,"1");
+ updateLearnerBtn();
+ $("nameModal").classList.remove("show");
+ renderCourses();
+}
+$("nameNext").onclick=goToNameConfirm;
+$("nameInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing&&e.keyCode!==229)goToNameConfirm()});
+$("nameConfirmOk").onclick=confirmName;
+$("nameConfirmBack").onclick=backToNameEdit;
+$("nameAdminLink").onclick=()=>{$("nameModal").classList.remove("show");requestAdmin()};
+
+/* ===== モーダルのフォーカストラップ（Tabキーでモーダルの外に出られないようにする） ===== */
+function setupFocusTrap(modalEl,onEscape){
+ modalEl.addEventListener("keydown",e=>{
+  if(!modalEl.classList.contains("show"))return;
+  if(e.key==="Escape"&&onEscape){onEscape();return}
+  if(e.key!=="Tab")return;
+  const list=Array.from(modalEl.querySelectorAll('button,input,select,textarea,a[href],[tabindex]:not([tabindex="-1"])')).filter(el=>!el.disabled&&el.offsetParent!==null);
+  if(!list.length)return;
+  const first=list[0],last=list[list.length-1];
+  if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}
+  else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
+ });
+}
+setupFocusTrap($("passwordModal"),()=>$("passwordCancel").click());
+setupFocusTrap($("nameModal")); // 名前入力は必須のため、Escでは閉じない
+
+/* ===== navigation ===== */
+$("brandBtn").onclick=home;$("back").onclick=home;
+$("myLogBtn").onclick=openMyLog;$("myLogBack").onclick=home;
+$("skipLesson").onclick=skipLesson;
+updateLearnerBtn();
+
+/* ===== 管理者ログイン（Supabase Auth） ===== */
+/* 受講者は「匿名ログイン」で身元だけ持たせ、本物の管理者ログインと区別する。
+   管理者モードに出入りしても同じ匿名の身元を保てるよう、トークンを控えておいて復元する */
+function saveAnonSession(session){
+  if(!session)return;
+  put(ANON_SESSION_KEY,{access_token:session.access_token,refresh_token:session.refresh_token});
+}
+async function bootstrapSession(){
+  const{data}=await sb.auth.getSession();
+  if(data.session){
+    const isAnon=data.session.user.is_anonymous===true;
+    adminSession=isAnon?null:data.session;
+    if(isAnon)saveAnonSession(data.session);
+    return
+  }
+  // 保存済みの匿名セッションがあれば、新規作成せずまずそれを復元する
+  const saved=load(ANON_SESSION_KEY,null);
+  if(saved){
+    try{
+      const{data:restored,error}=await sb.auth.setSession({access_token:saved.access_token,refresh_token:saved.refresh_token});
+      if(!error&&restored.session){adminSession=null;saveAnonSession(restored.session);return}
+    }catch(e){/* 復元できなければ下で新規作成する */}
+  }
+  try{
+    const{data:anonData,error}=await sb.auth.signInAnonymously();
+    if(error)throw error;
+    adminSession=null;
+    saveAnonSession(anonData.session);
+  }catch(err){
+    console.error("匿名ログインに失敗しました。Supabaseの Authentication > Sign In / Providers で Anonymous Sign-ins を有効にしてください。",err);
+    adminSession=null;
+    // 失敗した試行が壊れた/中途半端なセッションを残さないよう明示的にクリアする
+    try{await sb.auth.signOut()}catch(e){}
+    $("anonWarning").hidden=false;
+    $("anonWarning").textContent="匿名ログイン（受講者の識別）に失敗しました。Supabaseの「Authentication > Sign In / Providers」で Anonymous Sign-ins を有効にしてください。動画の視聴など他の機能には影響しません。";
+  }
+}
+sb.auth.onAuthStateChange((event,session)=>{
+  if(session){
+    const isAnon=session.user.is_anonymous===true;
+    adminSession=isAnon?null:session;
+    if(isAnon)saveAnonSession(session); // トークンが自動更新されるたびに控えを最新化しておく
+  }else{
+    adminSession=null;
+  }
+});
+
+function requestAdmin(){
+  if(adminSession){openAdmin();return}
+  $("adminEmail").value="";$("adminPasswordInput").value="";
+  $("passwordError").textContent="";
+  $("passwordModal").classList.add("show");
+  setTimeout(()=>$("adminEmail").focus(),50);
+}
+async function submitAdminLogin(){
+  const email=$("adminEmail").value.trim(),pw=$("adminPasswordInput").value;
+  if(!email||!pw){$("passwordError").textContent="メールアドレスとパスワードを入力してください。";return}
+  $("passwordError").textContent="ログイン中…";
+  const{data:cur}=await sb.auth.getSession();
+  if(cur.session&&cur.session.user.is_anonymous)saveAnonSession(cur.session); // 切り替え前に今の匿名セッションを必ず控えておく
+  try{await sb.auth.signOut()}catch(e){} // 既存の（壊れている可能性のある）セッションを必ず一旦クリアしてからログインする
+  const{data,error}=await sb.auth.signInWithPassword({email,password:pw});
+  if(error){$("passwordError").textContent="ログインできませんでした："+error.message;return}
+  adminSession=data.session;
+  $("passwordModal").classList.remove("show");
+  openAdmin();
+}
+function openAdmin(){show("admin");renderEditor();ensureXlsxLoaded().catch(e=>console.error(e))}
+$("adminBtn").onclick=requestAdmin;
+$("passwordSubmit").onclick=submitAdminLogin;
+$("passwordCancel").onclick=()=>$("passwordModal").classList.remove("show");
+$("adminPasswordInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing&&e.keyCode!==229)submitAdminLogin()});
+$("adminEmail").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing&&e.keyCode!==229)submitAdminLogin()});
+$("adminBack").onclick=async()=>{
+  await sb.auth.signOut();
+  adminSession=null;
+  await bootstrapSession(); // 受講者としての匿名セッション（できれば同じ身元）に戻す
+  home();
+};
+$("editTab").onclick=renderEditor;$("logTab").onclick=renderLogs;
+$("prevLesson").onclick=()=>{if(lessonIndex>0)loadLesson(lessonIndex-1)};
+window.onYouTubeIframeAPIReady=()=>{if(pendingId){createPlayer(pendingId);pendingId=null}};
+let ytS=document.createElement("script");ytS.src="https://www.youtube.com/iframe_api";document.head.appendChild(ytS);
+(async()=>{
+ if(isConfigured())await bootstrapSession();
+ if(needsNamePrompt()){showNameModal()}else{renderCourses()}
+})();
+</script>
+</body></html>
